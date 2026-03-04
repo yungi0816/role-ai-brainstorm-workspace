@@ -24,6 +24,20 @@ Goal:
 - Add route placeholders for the requested API surface
 - Add environment and local run documentation
 
+Status:
+
+- Committed and pushed as `chore: initialize backend foundation`
+
+### Phase 2: Provider Common Interface
+
+Goal:
+
+- Add the provider base contract
+- Add provider classes for Ollama, Gemini CLI, OpenAI, and Copilot
+- Add an AI router service for provider lookup and model validation
+- Route provider API responses through the provider registry
+- Keep actual Ollama runtime checks and real AI generation for later phases
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database

@@ -1,36 +1,10 @@
 import { Router } from 'express';
+import { getProviderOrThrow, listProviders } from '../services/aiRouterService.js';
 
 const router = Router();
 
-const providers = [
-  {
-    id: 'ollama',
-    label: 'Ollama Local',
-    status: 'planned',
-    models: ['gemma3:1b', 'gemma3:4b', 'qwen2.5-coder:1.5b', 'llama3.2:1b']
-  },
-  {
-    id: 'gemini-cli',
-    label: 'Gemini CLI',
-    status: 'planned',
-    models: []
-  },
-  {
-    id: 'openai',
-    label: 'OpenAI GPT',
-    status: 'planned',
-    models: []
-  },
-  {
-    id: 'copilot',
-    label: 'GitHub Copilot Provider',
-    status: 'stub',
-    models: []
-  }
-];
-
 router.get('/', (req, res) => {
-  res.json({ providers });
+  res.json({ providers: listProviders() });
 });
 
 router.get('/ollama/status', (req, res) => {
@@ -38,17 +12,27 @@ router.get('/ollama/status', (req, res) => {
     error: {
       code: 'OLLAMA_RUNTIME_NOT_IMPLEMENTED',
       message: 'Ollama installation, server, and connection checks are scheduled for the Ollama runtime phase.'
-    }
+    },
+    provider: getProviderOrThrow('ollama').getMetadata()
   });
 });
 
 router.get('/ollama/models', (req, res) => {
-  res.status(501).json({
-    error: {
-      code: 'OLLAMA_MODELS_NOT_IMPLEMENTED',
-      message: 'Ollama model discovery is scheduled for the Ollama runtime phase.'
-    }
+  const provider = getProviderOrThrow('ollama').getMetadata();
+  res.json({
+    source: 'configured-small-local-candidates',
+    runtimeImplemented: false,
+    models: provider.models,
+    provider
   });
+});
+
+router.get('/:providerId', (req, res, next) => {
+  try {
+    res.json({ provider: getProviderOrThrow(req.params.providerId).getMetadata() });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

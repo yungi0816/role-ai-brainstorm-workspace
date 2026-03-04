@@ -2,8 +2,13 @@ import { Router } from 'express';
 import {
   createMessage,
   getMindmap,
-  getOrCreateConversation
+  getOrCreateConversation,
+  listMessages
 } from '../services/conversationService.js';
+import {
+  generateBrainstormResponse,
+  validateProviderRequest
+} from '../services/aiRouterService.js';
 
 const router = Router();
 
@@ -25,7 +30,7 @@ function validateChatRequest(body) {
   return errors;
 }
 
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const validationErrors = validateChatRequest(req.body);
     if (validationErrors.length > 0) {
@@ -37,24 +42,46 @@ router.post('/', (req, res, next) => {
       });
     }
 
+    const providerMetadata = validateProviderRequest(req.body);
     const conversation = getOrCreateConversation(req.body);
     const message = createMessage({
       conversationId: conversation.id,
       role: 'user',
       content: String(req.body.message).trim()
     });
+    const mindmap = getMindmap(conversation.id);
 
-    return res.status(501).json({
-      error: {
-        code: 'AI_ROUTER_NOT_IMPLEMENTED',
-        message: 'The backend database is ready. AI routing will be implemented in the provider phase.'
-      },
-      conversation,
-      message,
-      agentOpinions: [],
-      mindmap: getMindmap(conversation.id),
-      suggestedQuestions: []
-    });
+    try {
+      const aiResponse = await generateBrainstormResponse({
+        provider: req.body.provider,
+        model: req.body.model,
+        message: req.body.message,
+        conversation,
+        history: listMessages(conversation.id),
+        mindmap
+      });
+
+      return res.json({
+        conversation,
+        message,
+        provider: providerMetadata,
+        aiResponse
+      });
+    } catch (providerError) {
+      return res.status(providerError.statusCode || 500).json({
+        error: {
+          code: providerError.code || 'AI_PROVIDER_ERROR',
+          message: providerError.message,
+          details: providerError.details
+        },
+        conversation,
+        message,
+        provider: providerMetadata,
+        agentOpinions: [],
+        mindmap,
+        suggestedQuestions: []
+      });
+    }
   } catch (error) {
     return next(error);
   }
