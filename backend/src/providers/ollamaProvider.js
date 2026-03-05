@@ -1,18 +1,17 @@
 import { BaseProvider } from './baseProvider.js';
-
-export const OLLAMA_SMALL_LOCAL_MODELS = [
-  'gemma3:1b',
-  'gemma3:4b',
-  'qwen2.5-coder:1.5b',
-  'llama3.2:1b'
-];
+import {
+  generateOllamaText,
+  getOllamaHost,
+  getOllamaStatus,
+  OLLAMA_SMALL_LOCAL_MODELS
+} from '../services/ollamaRuntimeService.js';
 
 export class OllamaProvider extends BaseProvider {
   constructor() {
     super({
       id: 'ollama',
       label: 'Ollama Local',
-      status: 'runtime_pending',
+      status: 'runtime_managed',
       models: OLLAMA_SMALL_LOCAL_MODELS,
       capabilities: ['local-runtime', 'model-discovery', 'json-response']
     });
@@ -22,11 +21,20 @@ export class OllamaProvider extends BaseProvider {
     return {
       ...super.getMetadata(),
       runtime: {
-        host: process.env.OLLAMA_HOST || 'http://localhost:11434',
-        installCheck: 'planned',
-        serverCheck: 'planned',
-        connectionCheck: 'planned'
+        host: getOllamaHost(),
+        installCheck: 'implemented',
+        serverCheck: 'implemented',
+        connectionCheck: 'implemented'
       }
     };
+  }
+
+  async getRuntimeStatus() {
+    return getOllamaStatus();
+  }
+
+  async generateText({ model, prompt, options }) {
+    this.validateModel(model);
+    return generateOllamaText({ model, prompt, options });
   }
 }

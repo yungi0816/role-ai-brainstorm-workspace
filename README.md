@@ -13,7 +13,7 @@ This repository is being built in small, reviewable phases. Commits are created 
 - Created the GitHub repository: `yungi0816/role-ai-brainstorm-workspace`
 - Initialized the local Git repository on `main`
 - Connected `origin` to the GitHub repository
-- No push has been performed yet
+- Initial push was deferred until the first phase commit was ready
 
 ### Phase 1: Backend Server and SQLite Foundation
 
@@ -37,6 +37,22 @@ Goal:
 - Add an AI router service for provider lookup and model validation
 - Route provider API responses through the provider registry
 - Keep actual Ollama runtime checks and real AI generation for later phases
+
+Status:
+
+- Completed locally and pushed as `feat: add provider interface layer`
+
+### Phase 3: Ollama Runtime and Provider
+
+Goal:
+
+- Detect whether the Ollama CLI is installed
+- Detect whether an Ollama process is running
+- Check the Ollama HTTP API at `OLLAMA_HOST`
+- Return local Ollama models from `/api/tags`
+- Expose the supported small local model candidates
+- Prepare a non-streaming pull function for supported small local models
+- Add a raw text generation function for the Ollama provider
 
 ## Planned Roadmap
 
@@ -77,6 +93,7 @@ Implemented in Phase 1 as working health/database checks plus placeholders for t
 - `GET /api/providers`
 - `GET /api/providers/ollama/status`
 - `GET /api/providers/ollama/models`
+- `POST /api/providers/ollama/models/pull`
 - `GET /api/mindmap/:conversationId`
 - `POST /api/mindmap/node-question`
 
