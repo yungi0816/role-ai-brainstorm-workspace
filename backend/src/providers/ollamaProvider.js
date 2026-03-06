@@ -33,6 +33,10 @@ export class OllamaProvider extends BaseProvider {
     return getOllamaStatus();
   }
 
+  assertUsable({ model } = {}) {
+    this.validateModel(model);
+  }
+
   async generateText({ model, prompt, options }) {
     this.validateModel(model);
     return generateOllamaText({ model, prompt, options });

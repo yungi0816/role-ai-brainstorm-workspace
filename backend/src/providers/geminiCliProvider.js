@@ -77,4 +77,8 @@ export class GeminiCliProvider extends BaseProvider {
       });
     });
   }
+
+  async generateText({ prompt }) {
+    return this.runCli(prompt);
+  }
 }

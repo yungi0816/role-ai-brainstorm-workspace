@@ -60,12 +60,22 @@ router.post('/', async (req, res, next) => {
         history: listMessages(conversation.id),
         mindmap
       });
+      const assistantMessage = createMessage({
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: aiResponse.chatResponse
+      });
 
       return res.json({
         conversation,
-        message,
+        message: assistantMessage,
         provider: providerMetadata,
-        aiResponse
+        chatResponse: aiResponse.chatResponse,
+        agentOpinions: aiResponse.agentOpinions,
+        mindmap,
+        mindmapPatch: aiResponse.mindmapPatch,
+        suggestedQuestions: aiResponse.suggestedQuestions,
+        metadata: aiResponse.metadata
       });
     } catch (providerError) {
       return res.status(providerError.statusCode || 500).json({

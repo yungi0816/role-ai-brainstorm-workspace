@@ -106,6 +106,30 @@ export class BaseProvider {
     }
   }
 
+  async generateText() {
+    throw new ProviderError(`Provider "${this.id}" has not implemented text generation.`, {
+      code: 'PROVIDER_TEXT_GENERATION_NOT_IMPLEMENTED',
+      statusCode: 501,
+      providerId: this.id
+    });
+  }
+
+  extractText(rawResponse) {
+    if (typeof rawResponse === 'string') {
+      return rawResponse;
+    }
+
+    if (typeof rawResponse?.response === 'string') {
+      return rawResponse.response;
+    }
+
+    if (typeof rawResponse?.text === 'string') {
+      return rawResponse.text;
+    }
+
+    return JSON.stringify(rawResponse || {});
+  }
+
   async generateBrainstormResponse() {
     throw new ProviderError(`Provider "${this.id}" has not implemented generation.`, {
       code: 'PROVIDER_GENERATION_NOT_IMPLEMENTED',

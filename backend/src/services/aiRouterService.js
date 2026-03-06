@@ -3,6 +3,10 @@ import { CopilotProvider } from '../providers/copilotProvider.js';
 import { GeminiCliProvider } from '../providers/geminiCliProvider.js';
 import { OllamaProvider } from '../providers/ollamaProvider.js';
 import { OpenAIProvider } from '../providers/openaiProvider.js';
+import {
+  buildBrainstormPrompt,
+  normalizeAiJsonResponse
+} from './promptService.js';
 
 const providerInstances = [
   new OllamaProvider(),
@@ -53,11 +57,18 @@ export async function generateBrainstormResponse({
   const provider = getProviderOrThrow(providerId);
   provider.assertUsable({ model });
 
-  return provider.generateBrainstormResponse({
-    model,
+  const prompt = buildBrainstormPrompt({
     message,
-    conversation,
     history,
     mindmap
   });
+
+  const rawProviderResponse = await provider.generateText({
+    model,
+    prompt,
+    conversation
+  });
+
+  const rawText = provider.extractText(rawProviderResponse);
+  return normalizeAiJsonResponse(rawText);
 }

@@ -54,6 +54,24 @@ Goal:
 - Prepare a non-streaming pull function for supported small local models
 - Add a raw text generation function for the Ollama provider
 
+Status:
+
+- Completed locally and pushed as `feat: add ollama runtime checks`
+
+### Phase 4: Prompt Service and JSON Normalization
+
+Goal:
+
+- Build the role-based brainstorming system prompt in `promptService`
+- Require provider responses to return JSON only
+- Normalize provider responses into the common AI response structure
+- Add fallback parsing when a provider returns malformed JSON
+- Keep mind map persistence for the next patch service phase
+
+Status:
+
+- Completed locally as `feat: normalize ai json responses`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
