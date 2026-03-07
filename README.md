@@ -72,6 +72,20 @@ Status:
 
 - Completed locally as `feat: normalize ai json responses`
 
+### Phase 5: Mind Map Patch Persistence
+
+Goal:
+
+- Apply normalized `mindmapPatch` objects to SQLite incrementally
+- Insert, update, and remove mind map nodes and edges without regenerating the whole map
+- Skip invalid patch entries, including edges whose endpoints do not exist
+- Store role-based agent opinions for each assistant message
+- Return the updated full mind map plus patch application metadata from chat responses
+
+Status:
+
+- Completed locally as `feat: persist mindmap patches`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database

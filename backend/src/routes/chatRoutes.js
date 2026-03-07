@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  createAgentOpinions,
   createMessage,
   getMindmap,
   getOrCreateConversation,
@@ -9,6 +10,7 @@ import {
   generateBrainstormResponse,
   validateProviderRequest
 } from '../services/aiRouterService.js';
+import { applyMindmapPatch } from '../services/mindmapPatchService.js';
 
 const router = Router();
 
@@ -65,6 +67,14 @@ router.post('/', async (req, res, next) => {
         role: 'assistant',
         content: aiResponse.chatResponse
       });
+      createAgentOpinions({
+        messageId: assistantMessage.id,
+        opinions: aiResponse.agentOpinions
+      });
+      const patchResult = applyMindmapPatch({
+        conversationId: conversation.id,
+        patch: aiResponse.mindmapPatch
+      });
 
       return res.json({
         conversation,
@@ -72,10 +82,13 @@ router.post('/', async (req, res, next) => {
         provider: providerMetadata,
         chatResponse: aiResponse.chatResponse,
         agentOpinions: aiResponse.agentOpinions,
-        mindmap,
+        mindmap: patchResult.mindmap,
         mindmapPatch: aiResponse.mindmapPatch,
         suggestedQuestions: aiResponse.suggestedQuestions,
-        metadata: aiResponse.metadata
+        metadata: {
+          ...aiResponse.metadata,
+          patchApplied: patchResult.applied
+        }
       });
     } catch (providerError) {
       return res.status(providerError.statusCode || 500).json({

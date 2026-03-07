@@ -92,6 +92,44 @@ export function listMessages(conversationId) {
     .all(conversationId);
 }
 
+export function createAgentOpinions({ messageId, opinions }) {
+  const db = getDatabase();
+  const rows = (Array.isArray(opinions) ? opinions : [])
+    .map((opinion) => ({
+      id: randomUUID(),
+      message_id: messageId,
+      agent_role: String(opinion.role || '').trim(),
+      opinion: String(opinion.opinion || '').trim()
+    }))
+    .filter((opinion) => opinion.agent_role && opinion.opinion);
+
+  const insertOpinion = db.prepare(`
+    INSERT INTO agent_opinions (id, message_id, agent_role, opinion)
+    VALUES (@id, @message_id, @agent_role, @opinion)
+  `);
+
+  const insertMany = db.transaction((items) => {
+    for (const item of items) {
+      insertOpinion.run(item);
+    }
+  });
+
+  insertMany(rows);
+
+  return listAgentOpinions(messageId);
+}
+
+export function listAgentOpinions(messageId) {
+  return getDatabase()
+    .prepare(`
+      SELECT *
+      FROM agent_opinions
+      WHERE message_id = ?
+      ORDER BY created_at ASC
+    `)
+    .all(messageId);
+}
+
 export function listConversations() {
   return getDatabase()
     .prepare(`
