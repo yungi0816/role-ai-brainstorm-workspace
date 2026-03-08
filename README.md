@@ -86,6 +86,22 @@ Status:
 
 - Completed locally as `feat: persist mindmap patches`
 
+### Phase 6: React Chat UI
+
+Goal:
+
+- Add a Vite React frontend scaffold
+- Add Tailwind CSS styling
+- Add API client functions for providers, chat, Ollama status/models, and node questions
+- Add provider/model selection controls
+- Add chat message input and response display
+- Add role opinion cards below AI responses
+- Add a basic mind map data panel for the next React Flow phase
+
+Status:
+
+- Completed locally as `feat: add react chat workspace`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
@@ -115,6 +131,21 @@ curl http://localhost:4000/api/health
 ```
 
 The backend creates the SQLite database file at `backend/data/app.db` by default.
+
+## Frontend Setup
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
 
 ## API Surface
 

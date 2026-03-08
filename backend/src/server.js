@@ -10,7 +10,7 @@ import providerRoutes from './routes/providerRoutes.js';
 const PORT = Number(process.env.PORT || 4000);
 
 function buildCorsOptions() {
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
