@@ -102,6 +102,20 @@ Status:
 
 - Completed locally as `feat: add react chat workspace`
 
+### Phase 7: React Flow Mind Map
+
+Goal:
+
+- Replace the placeholder mind map list with a React Flow canvas
+- Convert saved mind map nodes and edges into React Flow elements
+- Style nodes by semantic type
+- Support node selection and pane deselection
+- Show a selected-node detail summary for the next node-question phase
+
+Status:
+
+- Completed locally as `feat: render mindmap with react flow`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
