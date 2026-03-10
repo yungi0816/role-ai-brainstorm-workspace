@@ -4,7 +4,7 @@ Role-based AI brainstorming workspace with a chat-first interface and an increme
 
 ## Current Scope
 
-This repository is being built in small, reviewable phases. Commits are created only after a phase is complete and confirmed.
+This repository is being built in small, reviewable phases. Commits are created after each completed phase, while pushes are batched until requested.
 
 ## Phase Log
 
@@ -116,6 +116,21 @@ Status:
 
 - Completed locally as `feat: render mindmap with react flow`
 
+### Desktop Shell Phase: Electron Runtime
+
+Goal:
+
+- Add an Electron desktop shell
+- Start the local Express backend from the desktop app
+- Store the desktop SQLite database in Electron `userData`
+- Load the React production build in a desktop window
+- Expose the backend API URL to the renderer through a preload bridge
+- Keep installer packaging for the next desktop packaging phase
+
+Status:
+
+- Completed locally as `feat: add electron desktop shell`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
@@ -125,9 +140,11 @@ Status:
 5. Mind map patch service
 6. React chat UI
 7. React Flow mind map
-8. Node click follow-up questions
-9. Gemini CLI, OpenAI, and Copilot provider implementations/stubs
-10. README and GitHub documentation polish
+8. Electron desktop shell
+9. Desktop installer packaging
+10. Node click follow-up questions
+11. Gemini CLI, OpenAI, and Copilot provider implementations/stubs
+12. README and GitHub documentation polish
 
 ## Backend Setup
 
@@ -160,6 +177,25 @@ Open:
 ```text
 http://localhost:5173
 ```
+
+## Desktop Setup
+
+The desktop app runs the backend locally and loads the built React app inside Electron.
+
+```bash
+cd desktop
+npm install
+npm start
+```
+
+Smoke test without opening the app window:
+
+```bash
+cd desktop
+npm run smoke
+```
+
+The desktop runtime stores its SQLite database under Electron's `userData` directory unless `DB_FILE` is explicitly provided.
 
 ## API Surface
 

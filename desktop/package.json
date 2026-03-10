@@ -1,0 +1,15 @@
+{
+  "name": "role-ai-brainstorm-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron desktop shell for the role-based AI brainstorming workspace.",
+  "main": "main.cjs",
+  "scripts": {
+    "build:renderer": "npm --prefix ../frontend run build",
+    "start": "npm run build:renderer && electron .",
+    "smoke": "npm run build:renderer && node scripts/smoke.cjs"
+  },
+  "devDependencies": {
+    "electron": "^42.0.0"
+  }
+}
