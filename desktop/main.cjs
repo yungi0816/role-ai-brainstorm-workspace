@@ -1,18 +1,20 @@
 const { app, BrowserWindow, dialog } = require('electron');
-const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const repoRoot = path.resolve(__dirname, '..');
-const backendRoot = path.join(repoRoot, 'backend');
+const runtimeRoot = app.isPackaged ? process.resourcesPath : repoRoot;
+const backendRoot = process.env.DESKTOP_BACKEND_ROOT || path.join(runtimeRoot, 'backend');
 const backendServerPath = path.join(backendRoot, 'src', 'server.js');
-const frontendIndexPath = path.join(repoRoot, 'frontend', 'dist', 'index.html');
+const frontendIndexPath = process.env.DESKTOP_RENDERER_INDEX
+  || path.join(runtimeRoot, 'frontend', 'dist', 'index.html');
 
 const BACKEND_PORT = Number(process.env.DESKTOP_BACKEND_PORT || 4000);
 const API_BASE_URL = `http://localhost:${BACKEND_PORT}/api`;
 
-let backendProcess = null;
+let backendServer = null;
 let backendOwnedByDesktop = false;
 
 function requestHealth() {
@@ -52,35 +54,24 @@ async function ensureBackend() {
   }
 
   const dbFile = process.env.DB_FILE || path.join(app.getPath('userData'), 'app.db');
-  const nodeCommand = process.env.DESKTOP_NODE_COMMAND || 'node';
 
-  backendProcess = spawn(nodeCommand, [backendServerPath], {
-    cwd: backendRoot,
-    env: {
-      ...process.env,
-      NODE_ENV: 'desktop',
-      PORT: String(BACKEND_PORT),
-      DB_FILE: dbFile,
-      CORS_ORIGIN: '*'
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true
+  process.env.NODE_ENV = 'desktop';
+  process.env.PORT = String(BACKEND_PORT);
+  process.env.DB_FILE = dbFile;
+  process.env.CORS_ORIGIN = '*';
+
+  const backendModule = await import(pathToFileURL(backendServerPath).href);
+  const backendApp = backendModule.createApp();
+
+  backendServer = await new Promise((resolve, reject) => {
+    const server = backendApp.listen(BACKEND_PORT, () => {
+      console.log(`Desktop backend listening on ${API_BASE_URL}`);
+      resolve(server);
+    });
+
+    server.on('error', reject);
   });
   backendOwnedByDesktop = true;
-
-  backendProcess.stdout.on('data', (chunk) => {
-    console.log(`[backend] ${chunk.toString().trim()}`);
-  });
-
-  backendProcess.stderr.on('data', (chunk) => {
-    console.error(`[backend] ${chunk.toString().trim()}`);
-  });
-
-  backendProcess.on('exit', (code) => {
-    if (backendOwnedByDesktop && code !== 0 && code !== null) {
-      console.error(`Backend exited with code ${code}`);
-    }
-  });
 
   if (!(await waitForBackend())) {
     throw new Error(`Backend did not become ready on ${API_BASE_URL}.`);
@@ -116,9 +107,18 @@ function createWindow() {
 }
 
 function stopBackend() {
-  if (backendOwnedByDesktop && backendProcess && !backendProcess.killed) {
-    backendProcess.kill();
-  }
+  return new Promise((resolve) => {
+    if (!backendOwnedByDesktop || !backendServer) {
+      resolve();
+      return;
+    }
+
+    backendServer.close(() => {
+      backendServer = null;
+      backendOwnedByDesktop = false;
+      resolve();
+    });
+  });
 }
 
 app.whenReady()
@@ -127,7 +127,8 @@ app.whenReady()
 
     if (process.env.DESKTOP_SMOKE_TEST === '1') {
       console.log(`Desktop smoke ready: ${API_BASE_URL}`);
-      app.quit();
+      await stopBackend();
+      app.exit(0);
       return;
     }
 
@@ -145,7 +146,9 @@ app.whenReady()
     app.quit();
   });
 
-app.on('before-quit', stopBackend);
+app.on('before-quit', () => {
+  stopBackend();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

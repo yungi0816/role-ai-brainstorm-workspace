@@ -2,6 +2,7 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
+import { pathToFileURL } from 'node:url';
 import { getDatabase, initDatabase } from './db/database.js';
 import chatRoutes from './routes/chatRoutes.js';
 import mindmapRoutes from './routes/mindmapRoutes.js';
@@ -71,9 +72,17 @@ export function createApp() {
   return app;
 }
 
-if (process.env.NODE_ENV !== 'test') {
+export function startServer({ port = PORT } = {}) {
   const app = createApp();
-  app.listen(PORT, () => {
-    console.log(`Backend API listening on http://localhost:${PORT}`);
+  return app.listen(port, () => {
+    console.log(`Backend API listening on http://localhost:${port}`);
   });
+}
+
+function isDirectRun() {
+  return process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+}
+
+if (process.env.NODE_ENV !== 'test' && isDirectRun()) {
+  startServer();
 }

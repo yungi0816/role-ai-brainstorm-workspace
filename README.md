@@ -131,6 +131,21 @@ Status:
 
 - Completed locally as `feat: add electron desktop shell`
 
+### Desktop Packaging Phase: Windows Installer
+
+Goal:
+
+- Switch the backend database layer from native `better-sqlite3` to Node's built-in `node:sqlite`
+- Run the Express backend inside the Electron main process without spawning an external `node` command
+- Add `electron-builder` configuration for Windows NSIS installer builds
+- Copy backend and frontend runtime resources into the packaged app
+- Generate an unpacked Windows desktop build
+- Generate a Windows setup executable
+
+Status:
+
+- Completed locally as `feat: package desktop installer`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
@@ -193,6 +208,26 @@ Smoke test without opening the app window:
 ```bash
 cd desktop
 npm run smoke
+```
+
+Create an unpacked Windows app:
+
+```bash
+cd desktop
+npm run pack
+```
+
+Create a Windows installer:
+
+```bash
+cd desktop
+npm run dist
+```
+
+Installer output:
+
+```text
+desktop/artifacts/Role AI Brainstorm Workspace Setup 0.1.0.exe
 ```
 
 The desktop runtime stores its SQLite database under Electron's `userData` directory unless `DB_FILE` is explicitly provided.

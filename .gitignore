@@ -8,6 +8,8 @@ build/
 backend/data/
 backend/*.db
 backend/*.db-*
+desktop/artifacts/
+desktop/release/
 
 .DS_Store
 Thumbs.db
