@@ -1,10 +1,12 @@
 # Role AI Brainstorm Workspace
 
-Role-based AI brainstorming workspace with a chat-first interface and an incrementally updated mind map.
+Role-based AI brainstorming desktop software with a chat-first interface and an incrementally updated mind map.
 
 ## Current Scope
 
 This repository is being built in small, reviewable phases. Commits are created after each completed phase, while pushes are batched until requested.
+
+The project started as a web app MVP and has moved into a packaged desktop software direction. The frontend and backend remain separately runnable for development, while the Electron app is the target runtime.
 
 ## Phase Log
 
@@ -146,6 +148,21 @@ Status:
 
 - Completed locally as `feat: package desktop installer`
 
+### Phase 10: Node Click Follow-up Questions
+
+Goal:
+
+- Implement `POST /api/mindmap/node-question` as a real AI turn
+- Reuse the selected conversation's provider and model for node follow-up questions
+- Pass selected node context into the role-based prompt
+- Save the node question as a user message and persist the assistant answer, agent opinions, and mind map patch
+- Add a selected-node question form to the React Flow side panel
+- Fix Korean prompt/UI strings that were required for role normalization
+
+Status:
+
+- Completed locally as `feat: add node follow-up questions`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
@@ -234,7 +251,7 @@ The desktop runtime stores its SQLite database under Electron's `userData` direc
 
 ## API Surface
 
-Implemented in Phase 1 as working health/database checks plus placeholders for the target API:
+Implemented API:
 
 - `GET /api/health`
 - `POST /api/chat`
@@ -244,4 +261,6 @@ Implemented in Phase 1 as working health/database checks plus placeholders for t
 - `POST /api/providers/ollama/models/pull`
 - `GET /api/mindmap/:conversationId`
 - `POST /api/mindmap/node-question`
+
+Node follow-up questions use the conversation's saved provider/model, pass the selected node into the AI prompt, and return the same normalized response structure as `POST /api/chat`.
 

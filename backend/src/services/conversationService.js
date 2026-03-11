@@ -158,3 +158,13 @@ export function getMindmap(conversationId) {
 
   return { nodes, edges };
 }
+
+export function getMindmapNode(conversationId, nodeId) {
+  return getDatabase()
+    .prepare(`
+      SELECT *
+      FROM mindmap_nodes
+      WHERE conversation_id = ? AND id = ?
+    `)
+    .get(conversationId, nodeId);
+}

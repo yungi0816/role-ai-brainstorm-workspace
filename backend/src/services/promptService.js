@@ -44,6 +44,20 @@ function compactMindmap(mindmap) {
   };
 }
 
+function compactNodeContext(nodeContext) {
+  if (!nodeContext) {
+    return null;
+  }
+
+  return {
+    id: nodeContext.id,
+    label: nodeContext.label,
+    type: nodeContext.type,
+    parentId: nodeContext.parent_id || nodeContext.parentId || null,
+    description: truncateText(nodeContext.description, 600)
+  };
+}
+
 export function buildBrainstormPrompt({
   message,
   history = [],
@@ -54,7 +68,7 @@ export function buildBrainstormPrompt({
     userMessage: truncateText(message, 4000),
     recentConversation: compactHistory(history),
     currentMindmap: compactMindmap(mindmap),
-    selectedNode: nodeContext
+    selectedNode: compactNodeContext(nodeContext)
   };
 
   return `
@@ -66,12 +80,13 @@ ${REQUIRED_AGENT_ROLES.map((role) => `- ${role}`).join('\n')}
 Rules:
 1. Return JSON only. Do not wrap it in markdown. Do not add commentary outside JSON.
 2. Always generate one opinion for every required role.
-3. Always generate a mindmapPatch object.
+3. Always generate a mindmapPatch object, even if every patch array is empty.
 4. Use the existing mind map to avoid duplicate nodes. Prefer updateNodes when a concept already exists.
 5. Use patch updates only. Do not regenerate the whole mind map.
 6. Keep node ids stable, lowercase, and readable when possible.
 7. Node type must be one of: ${MINDMAP_NODE_TYPES.join(', ')}.
-8. If selectedNode exists, answer the question in the context of that node.
+8. If selectedNode exists, answer the question in the context of that node and update or extend that node when useful.
+9. Write chatResponse, opinions, node labels, descriptions, and suggestedQuestions in Korean.
 
 Required JSON shape:
 {
@@ -159,12 +174,18 @@ function normalizeAgentOpinions(agentOpinions) {
     }
   }
 
-  return REQUIRED_AGENT_ROLES.map((role) => (
-    byRole.get(role) || {
-      role,
-      opinion: '응답에서 이 역할의 의견이 누락되었습니다.'
+  return REQUIRED_AGENT_ROLES.map((role, index) => {
+    const exact = byRole.get(role);
+    if (exact) {
+      return exact;
     }
-  ));
+
+    const positionalOpinion = asString(source[index]?.opinion);
+    return {
+      role,
+      opinion: positionalOpinion || '응답에서 이 역할의 의견이 누락되었습니다.'
+    };
+  });
 }
 
 function normalizeNode(node) {
@@ -181,8 +202,13 @@ function normalizeNode(node) {
 
 function normalizeNodeUpdate(node) {
   return {
-    ...normalizeNode(node),
-    parentId: node?.parentId === undefined ? undefined : node.parentId
+    id: asString(node?.id),
+    label: node?.label === undefined ? undefined : asString(node.label),
+    type: node?.type === undefined
+      ? undefined
+      : (MINDMAP_NODE_TYPES.includes(node.type) ? node.type : 'idea'),
+    parentId: node?.parentId === undefined ? undefined : node.parentId,
+    description: node?.description === undefined ? undefined : asString(node.description)
   };
 }
 
@@ -192,6 +218,15 @@ function normalizeEdge(edge) {
     source: asString(edge?.source),
     target: asString(edge?.target),
     label: asString(edge?.label)
+  };
+}
+
+function normalizeEdgeUpdate(edge) {
+  return {
+    id: asString(edge?.id),
+    source: edge?.source === undefined ? undefined : asString(edge.source),
+    target: edge?.target === undefined ? undefined : asString(edge.target),
+    label: edge?.label === undefined ? undefined : asString(edge.label)
   };
 }
 
@@ -228,7 +263,7 @@ function normalizeMindmapPatch(patch) {
     .filter((edge) => edge.id && edge.source && edge.target);
 
   normalized.updateEdges = cleanArray(source.updateEdges)
-    .map(normalizeEdge)
+    .map(normalizeEdgeUpdate)
     .filter((edge) => edge.id);
 
   normalized.removeEdges = cleanArray(source.removeEdges)
@@ -254,11 +289,11 @@ function fallbackResponse(rawText, error) {
       role,
       opinion: role === '정리자'
         ? text
-        : 'JSON 파싱 실패로 원문에서 이 역할의 의견을 분리하지 못했습니다.'
+        : 'JSON 파싱 실패로 원문에서 역할별 의견을 분리하지 못했습니다.'
     })),
     mindmapPatch: normalizeMindmapPatch({}),
     suggestedQuestions: [
-      '이 응답을 역할별 JSON으로 다시 정리해줘',
+      '이 응답을 올바른 JSON으로 다시 정리해줘',
       '마인드맵에 추가할 핵심 노드는 무엇일까?'
     ],
     metadata: {

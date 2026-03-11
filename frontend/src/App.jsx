@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ChatPanel from './components/ChatPanel.jsx';
 import MindMapPanel from './components/MindMapPanel.jsx';
 import ProviderSelector from './components/ProviderSelector.jsx';
-import { fetchProviders, sendChatMessage } from './api/chatApi.js';
+import { fetchProviders, sendChatMessage, sendNodeQuestion } from './api/chatApi.js';
 import {
   createErrorMessage,
   createUserMessage,
@@ -122,6 +122,60 @@ export default function App() {
     setInput(question);
   }
 
+  async function handleNodeQuestion(question) {
+    const content = String(question || '').trim();
+    if (!content || state.isSending || !state.conversationId || !state.selectedNode) {
+      return;
+    }
+
+    const nodeLabel = state.selectedNode.label || 'selected node';
+    const userMessage = createUserMessage(`[${nodeLabel}] ${content}`);
+    setState((current) => ({
+      ...current,
+      messages: [...current.messages, userMessage],
+      isSending: true,
+      error: null
+    }));
+
+    try {
+      const response = await sendNodeQuestion({
+        conversationId: state.conversationId,
+        nodeId: state.selectedNode.id,
+        question: content
+      });
+      const assistantMessage = toAssistantMessage(response);
+
+      setState((current) => {
+        const nextMindmap = response.mindmap || current.mindmap;
+        const nextSelectedNode = nextMindmap.nodes?.find((node) => node.id === current.selectedNode?.id) || null;
+
+        return {
+          ...current,
+          messages: [...current.messages, assistantMessage],
+          agentOpinions: response.agentOpinions || [],
+          mindmap: nextMindmap,
+          suggestedQuestions: response.suggestedQuestions || [],
+          selectedNode: nextSelectedNode,
+          isSending: false
+        };
+      });
+    } catch (error) {
+      const errorPayload = error.response?.data;
+      const errorText = errorPayload?.error?.message || error.message;
+      const errorMessage = createErrorMessage(errorText);
+
+      setState((current) => ({
+        ...current,
+        messages: [...current.messages, errorMessage],
+        agentOpinions: errorPayload?.agentOpinions || [],
+        mindmap: errorPayload?.mindmap || current.mindmap,
+        suggestedQuestions: errorPayload?.suggestedQuestions || [],
+        error: errorText,
+        isSending: false
+      }));
+    }
+  }
+
   return (
     <div className="flex h-screen min-h-[720px] flex-col overflow-hidden bg-slate-100">
       <ProviderSelector
@@ -155,6 +209,8 @@ export default function App() {
           mindmap={state.mindmap}
           selectedNode={state.selectedNode}
           onSelectNode={(node) => setState((current) => ({ ...current, selectedNode: node }))}
+          onAskNodeQuestion={handleNodeQuestion}
+          isSending={state.isSending}
         />
       </main>
 

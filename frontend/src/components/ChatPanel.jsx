@@ -42,7 +42,7 @@ export default function ChatPanel({
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.length === 0 ? (
             <div className="rounded-md border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
-              새 브레인스토밍
+              브레인스토밍할 과제, 아이디어, 기획 주제를 입력하세요.
             </div>
           ) : (
             messages.map((message) => <MessageBubble key={message.id} message={message} />)

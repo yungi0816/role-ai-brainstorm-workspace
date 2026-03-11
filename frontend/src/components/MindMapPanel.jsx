@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Send } from 'lucide-react';
 import {
   Background,
   Controls,
@@ -90,13 +91,26 @@ function toFlowEdge(edge) {
   };
 }
 
-function SelectedNodePanel({ node }) {
+function SelectedNodePanel({ node, onAskQuestion, isSending }) {
+  const [question, setQuestion] = useState('');
+
   if (!node) {
     return (
       <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
-        Select a node to inspect details.
+        노드를 선택하면 세부 정보를 볼 수 있습니다.
       </div>
     );
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const content = question.trim();
+    if (!content || isSending) {
+      return;
+    }
+
+    onAskQuestion(content);
+    setQuestion('');
   }
 
   return (
@@ -115,11 +129,42 @@ function SelectedNodePanel({ node }) {
       <p className="line-clamp-3 text-xs leading-5 text-slate-600">
         {node.description || 'No description.'}
       </p>
+      <form className="mt-3 grid gap-2" onSubmit={handleSubmit}>
+        <label className="text-xs font-semibold text-slate-700" htmlFor="node-question">
+          이 노드에 대해 질문하기
+        </label>
+        <div className="flex gap-2">
+          <textarea
+            id="node-question"
+            className="min-h-10 flex-1 resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-xs leading-5 text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+            rows={2}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="예: 이 노드를 더 구체화해줘"
+            disabled={isSending}
+          />
+          <button
+            type="submit"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-cyan-700 text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            disabled={isSending || !question.trim()}
+            title="Ask about selected node"
+            aria-label="Ask about selected node"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
-export default function MindMapPanel({ mindmap, selectedNode, onSelectNode }) {
+export default function MindMapPanel({
+  mindmap,
+  selectedNode,
+  onSelectNode,
+  onAskNodeQuestion,
+  isSending
+}) {
   const sourceNodes = mindmap?.nodes || [];
   const sourceEdges = mindmap?.edges || [];
   const flowNodes = useMemo(
@@ -173,7 +218,12 @@ export default function MindMapPanel({ mindmap, selectedNode, onSelectNode }) {
         )}
       </div>
 
-      <SelectedNodePanel node={selectedNode} />
+      <SelectedNodePanel
+        key={selectedNode?.id || 'empty-node'}
+        node={selectedNode}
+        onAskQuestion={onAskNodeQuestion}
+        isSending={isSending}
+      />
     </aside>
   );
 }

@@ -52,7 +52,8 @@ export async function generateBrainstormResponse({
   message,
   conversation,
   history = [],
-  mindmap = { nodes: [], edges: [] }
+  mindmap = { nodes: [], edges: [] },
+  nodeContext = null
 }) {
   const provider = getProviderOrThrow(providerId);
   provider.assertUsable({ model });
@@ -60,7 +61,8 @@ export async function generateBrainstormResponse({
   const prompt = buildBrainstormPrompt({
     message,
     history,
-    mindmap
+    mindmap,
+    nodeContext
   });
 
   const rawProviderResponse = await provider.generateText({
