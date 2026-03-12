@@ -163,6 +163,22 @@ Status:
 
 - Completed locally as `feat: add node follow-up questions`
 
+### Phase 11: Desktop UX Prototype
+
+Goal:
+
+- Send chat messages with Enter while keeping Shift+Enter for line breaks
+- Move brainstorming chat into a compact floating panel that can be opened and closed
+- Move provider/model controls into a separate AI settings panel
+- Open the mind map from a globe button and show it as a larger visual workspace
+- Add subtle animated edges and orbit styling for a restrained 3D-like mind map feel
+- Remove the default Electron menu/title bar and expose only custom minimize/close controls
+- Shift the visual language from a bright web app layout toward a balanced desktop cyber-tool theme
+
+Status:
+
+- Completed locally as `feat: refine desktop ux prototype`
+
 ## Planned Roadmap
 
 1. Backend server and SQLite database
@@ -175,8 +191,9 @@ Status:
 8. Electron desktop shell
 9. Desktop installer packaging
 10. Node click follow-up questions
-11. Gemini CLI, OpenAI, and Copilot provider implementations/stubs
-12. README and GitHub documentation polish
+11. Desktop UX prototype
+12. Gemini CLI, OpenAI, and Copilot provider implementations/stubs
+13. README and GitHub documentation polish
 
 ## Backend Setup
 

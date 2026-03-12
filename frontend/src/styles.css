@@ -10,8 +10,8 @@ body,
 
 body {
   margin: 0;
-  background: #f4f6f8;
-  color: #17202a;
+  background: #07111f;
+  color: #e2e8f0;
 }
 
 button,
@@ -19,4 +19,83 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+.workspace-stage {
+  background-color: #07111f;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.06) 1px, transparent 1px),
+    linear-gradient(135deg, #07111f 0%, #0f172a 52%, #10172b 100%);
+  background-size: 34px 34px, 34px 34px, 100% 100%;
+}
+
+.workspace-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 7px;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.window-drag {
+  -webkit-app-region: drag;
+}
+
+.window-no-drag,
+button,
+input,
+textarea,
+select {
+  -webkit-app-region: no-drag;
+}
+
+.mindmap-orbit-surface::before,
+.mindmap-orbit-surface::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 88vmin;
+  height: 88vmin;
+  border: 1px solid rgba(34, 211, 238, 0.17);
+  border-radius: 9999px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotateX(64deg) rotateZ(0deg);
+  transform-origin: center;
+  animation: orbit-spin 24s linear infinite;
+}
+
+.mindmap-orbit-surface::after {
+  width: 68vmin;
+  height: 68vmin;
+  border-color: rgba(129, 140, 248, 0.16);
+  animation-direction: reverse;
+  animation-duration: 18s;
+}
+
+.mindmap-flow {
+  position: relative;
+  z-index: 1;
+}
+
+.mindmap-flow .react-flow__edge.animated path {
+  stroke-dasharray: 9 12;
+  animation-duration: 1.5s;
+}
+
+.mindmap-node {
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: translate(-50%, -50%) rotateX(64deg) rotateZ(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotateX(64deg) rotateZ(360deg);
+  }
 }

@@ -1,9 +1,9 @@
 const ROLE_TONE = {
-  '아이디어 뱅크': 'border-cyan-200 bg-cyan-50',
-  '비판가': 'border-rose-200 bg-rose-50',
-  '검토자': 'border-amber-200 bg-amber-50',
-  '구현 설계자': 'border-indigo-200 bg-indigo-50',
-  '정리자': 'border-emerald-200 bg-emerald-50'
+  '아이디어 뱅크': 'border-cyan-300/20 bg-cyan-500/10',
+  '비판가': 'border-rose-300/20 bg-rose-500/10',
+  '검토자': 'border-amber-300/20 bg-amber-500/10',
+  '구현 설계자': 'border-indigo-300/20 bg-indigo-500/10',
+  '정리자': 'border-emerald-300/20 bg-emerald-500/10'
 };
 
 export default function AgentOpinionPanel({ opinions }) {
@@ -16,10 +16,10 @@ export default function AgentOpinionPanel({ opinions }) {
       {opinions.map((item) => (
         <article
           key={`${item.role}-${item.opinion}`}
-          className={`rounded-md border p-3 ${ROLE_TONE[item.role] || 'border-slate-200 bg-slate-50'}`}
+          className={`rounded-md border p-3 ${ROLE_TONE[item.role] || 'border-slate-700 bg-slate-900/70'}`}
         >
-          <div className="mb-1 text-xs font-semibold text-slate-700">{item.role}</div>
-          <p className="text-sm leading-6 text-slate-800">{item.opinion}</p>
+          <div className="mb-1 text-xs font-semibold text-slate-200">{item.role}</div>
+          <p className="text-sm leading-6 text-slate-300">{item.opinion}</p>
         </article>
       ))}
     </div>

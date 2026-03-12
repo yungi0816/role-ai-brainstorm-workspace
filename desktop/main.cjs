@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
@@ -80,6 +80,7 @@ async function ensureBackend() {
 
 function createWindow() {
   process.env.DESKTOP_API_BASE_URL = API_BASE_URL;
+  Menu.setApplicationMenu(null);
 
   const window = new BrowserWindow({
     width: 1440,
@@ -87,7 +88,9 @@ function createWindow() {
     minWidth: 1120,
     minHeight: 720,
     title: 'Role AI Brainstorm Workspace',
-    backgroundColor: '#f4f6f8',
+    frame: false,
+    autoHideMenuBar: true,
+    backgroundColor: '#07111f',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -120,6 +123,14 @@ function stopBackend() {
     });
   });
 }
+
+ipcMain.handle('window:minimize', (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.minimize();
+});
+
+ipcMain.handle('window:close', (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.close();
+});
 
 app.whenReady()
   .then(async () => {
