@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('desktopConfig', {
 
 contextBridge.exposeInMainWorld('desktopWindow', {
   minimize: () => ipcRenderer.invoke('window:minimize'),
-  close: () => ipcRenderer.invoke('window:close')
+  close: () => ipcRenderer.invoke('window:close'),
+  setMindmapExpanded: (expanded) => ipcRenderer.invoke('window:set-mindmap-expanded', Boolean(expanded))
 });

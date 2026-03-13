@@ -17,8 +17,8 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-slate-950/48 backdrop-blur-sm">
-      <aside className="absolute right-5 top-16 flex max-h-[calc(100vh-84px)] w-[380px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/92 shadow-2xl shadow-cyan-950/30">
+    <div className="window-no-drag fixed inset-0 z-[100] bg-slate-950/48 backdrop-blur-sm">
+      <aside className="absolute right-4 top-14 flex max-h-[calc(100vh-68px)] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/92 shadow-2xl shadow-cyan-950/30">
         <div className="flex items-center justify-between gap-3 border-b border-cyan-300/10 px-4 py-3">
           <div>
             <h2 className="text-sm font-semibold text-slate-50">AI Settings</h2>

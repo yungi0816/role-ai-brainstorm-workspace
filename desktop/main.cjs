@@ -13,6 +13,8 @@ const frontendIndexPath = process.env.DESKTOP_RENDERER_INDEX
 
 const BACKEND_PORT = Number(process.env.DESKTOP_BACKEND_PORT || 4000);
 const API_BASE_URL = `http://localhost:${BACKEND_PORT}/api`;
+const COLLAPSED_WINDOW = { width: 460, height: 720 };
+const EXPANDED_WINDOW = { width: 1180, height: 860 };
 
 let backendServer = null;
 let backendOwnedByDesktop = false;
@@ -83,10 +85,10 @@ function createWindow() {
   Menu.setApplicationMenu(null);
 
   const window = new BrowserWindow({
-    width: 1440,
-    height: 920,
-    minWidth: 1120,
-    minHeight: 720,
+    width: COLLAPSED_WINDOW.width,
+    height: COLLAPSED_WINDOW.height,
+    minWidth: COLLAPSED_WINDOW.width,
+    minHeight: COLLAPSED_WINDOW.height,
     title: 'Role AI Brainstorm Workspace',
     frame: false,
     autoHideMenuBar: true,
@@ -130,6 +132,25 @@ ipcMain.handle('window:minimize', (event) => {
 
 ipcMain.handle('window:close', (event) => {
   BrowserWindow.fromWebContents(event.sender)?.close();
+});
+
+ipcMain.handle('window:set-mindmap-expanded', (event, expanded) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window) {
+    return;
+  }
+
+  const target = expanded ? EXPANDED_WINDOW : COLLAPSED_WINDOW;
+  const current = window.getBounds();
+  const right = current.x + current.width;
+
+  window.setMinimumSize(target.width, target.height);
+  window.setBounds({
+    x: right - target.width,
+    y: current.y,
+    width: target.width,
+    height: target.height
+  }, true);
 });
 
 app.whenReady()

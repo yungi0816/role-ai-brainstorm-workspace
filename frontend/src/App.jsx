@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Globe2, MessageCircle, Minus, Settings, X } from 'lucide-react';
 import ChatPanel from './components/ChatPanel.jsx';
 import MindMapPanel from './components/MindMapPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
@@ -13,28 +12,31 @@ import {
   toAssistantMessage
 } from './stores/conversationStore.js';
 
-function WindowControls() {
+function ChatRevealTab({ onClick }) {
   return (
-    <div className="window-no-drag fixed right-4 top-3 z-[90] flex items-center gap-2">
-      <button
-        type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-300/20 bg-slate-950/72 text-slate-300 shadow-lg shadow-cyan-950/30 backdrop-blur transition hover:border-cyan-300/50 hover:bg-slate-900"
-        onClick={() => window.desktopWindow?.minimize()}
-        title="Minimize"
-        aria-label="Minimize"
-      >
-        <Minus size={15} />
-      </button>
-      <button
-        type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-300/20 bg-slate-950/72 text-slate-300 shadow-lg shadow-rose-950/20 backdrop-blur transition hover:border-rose-300/50 hover:bg-rose-950/70 hover:text-rose-100"
-        onClick={() => window.desktopWindow?.close()}
-        title="Close"
-        aria-label="Close"
-      >
-        <X size={15} />
-      </button>
-    </div>
+    <button
+      type="button"
+      className="window-no-drag fixed right-0 top-24 z-[90] flex h-20 w-8 items-center justify-center rounded-l-md border border-r-0 border-cyan-300/20 bg-slate-950/88 text-cyan-100 shadow-xl shadow-cyan-950/30 backdrop-blur transition hover:bg-slate-900"
+      onClick={onClick}
+      title="Show chat"
+      aria-label="Show chat"
+    >
+      &gt;
+    </button>
+  );
+}
+
+function ChatTuckButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      className="window-no-drag absolute -left-8 top-20 z-[91] flex h-16 w-8 items-center justify-center rounded-l-md border border-r-0 border-cyan-300/20 bg-slate-950/88 text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:bg-slate-900"
+      onClick={onClick}
+      title="Hide chat"
+      aria-label="Hide chat"
+    >
+      &gt;
+    </button>
   );
 }
 
@@ -43,9 +45,9 @@ export default function App() {
   const [state, setState] = useState(initialConversationState);
   const [input, setInput] = useState('');
   const [isRefreshingProviders, setIsRefreshingProviders] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMindmapOpen, setIsMindmapOpen] = useState(false);
+  const [isChatVisible, setIsChatVisible] = useState(true);
 
   const activeProvider = useMemo(
     () => providers.find((provider) => provider.id === state.provider),
@@ -93,6 +95,20 @@ export default function App() {
       provider: providerId,
       model: nextProvider?.models?.[0] || current.model
     }));
+  }
+
+  function setMindmapExpanded(expanded) {
+    setIsMindmapOpen(expanded);
+    window.desktopWindow?.setMindmapExpanded(expanded);
+
+    if (!expanded) {
+      setIsChatVisible(true);
+      setState((current) => ({ ...current, selectedNode: null }));
+    }
+  }
+
+  function toggleMindmap() {
+    setMindmapExpanded(!isMindmapOpen);
   }
 
   async function handleSubmit(event) {
@@ -149,7 +165,7 @@ export default function App() {
 
   function handleSuggestedQuestion(question) {
     setInput(question);
-    setIsChatOpen(true);
+    setIsChatVisible(true);
   }
 
   async function handleNodeQuestion(question) {
@@ -158,7 +174,7 @@ export default function App() {
       return;
     }
 
-    setIsChatOpen(true);
+    setIsChatVisible(true);
     const nodeLabel = state.selectedNode.label || 'selected node';
     const userMessage = createUserMessage(`[${nodeLabel}] ${content}`);
     setState((current) => ({
@@ -208,76 +224,33 @@ export default function App() {
   }
 
   return (
-    <div className="relative h-screen min-h-[720px] overflow-hidden bg-[#07111f] text-slate-100">
-      <div className="window-drag fixed inset-x-0 top-0 z-[80] h-12" />
-      <WindowControls />
-      <main className="relative h-full overflow-hidden">
-        <div className="workspace-stage absolute inset-0" />
-        <div className="window-drag absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5 pr-28">
-          <div>
-            <h1 className="text-lg font-semibold tracking-normal text-slate-50">
-              Role AI Brainstorm Workspace
-            </h1>
-            <div className="mt-1 text-xs text-slate-400">
-              {activeProvider?.label || state.provider} / {state.model}
-            </div>
-          </div>
-          <div className="window-no-drag rounded-md border border-cyan-300/15 bg-slate-950/58 px-3 py-2 text-xs text-slate-300 shadow-lg shadow-cyan-950/20 backdrop-blur">
-            {state.mindmap.nodes.length} nodes / {state.messages.length} messages
-          </div>
-        </div>
+    <div className="relative h-screen min-h-0 overflow-hidden bg-[#07111f] text-slate-100">
+      <div className="workspace-stage absolute inset-0" />
 
-        <div className="absolute inset-0 flex items-center justify-center px-6">
-          <button
-            type="button"
-            className="window-no-drag group inline-flex h-28 w-28 items-center justify-center rounded-full border border-cyan-300/25 bg-slate-950/74 text-cyan-200 shadow-[0_24px_80px_rgba(6,182,212,0.18)] backdrop-blur transition hover:-translate-y-0.5 hover:border-cyan-300/70 hover:bg-slate-900"
-            onClick={() => setIsMindmapOpen(true)}
-            title="Open mind map"
-            aria-label="Open mind map"
-          >
-            <Globe2 size={48} className="transition group-hover:rotate-12" />
-          </button>
-        </div>
-      </main>
-
-      <div className="window-no-drag fixed left-5 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-3 rounded-lg border border-cyan-300/15 bg-slate-950/68 p-2 shadow-xl shadow-cyan-950/20 backdrop-blur">
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-cyan-200 transition hover:bg-cyan-300/10"
-          onClick={() => setIsMindmapOpen(true)}
-          title="Mind map"
-          aria-label="Mind map"
-        >
-          <Globe2 size={20} />
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-700/50"
-          onClick={() => setIsChatOpen((current) => !current)}
-          title="Chat"
-          aria-label="Chat"
-        >
-          <MessageCircle size={20} />
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-700/50"
-          onClick={() => setIsSettingsOpen(true)}
-          title="Settings"
-          aria-label="Settings"
-        >
-          <Settings size={20} />
-        </button>
-      </div>
-
-      {state.error ? (
-        <div className="window-no-drag fixed bottom-5 left-1/2 z-50 max-w-[calc(100vw-40px)] -translate-x-1/2 rounded-md border border-rose-300/30 bg-rose-950/88 px-4 py-2 text-sm text-rose-100 shadow-lg">
-          {state.error}
+      {isMindmapOpen ? (
+        <div className="absolute inset-3 z-10">
+          <MindMapPanel
+            mindmap={state.mindmap}
+            selectedNode={state.selectedNode}
+            onSelectNode={(node) => setState((current) => ({ ...current, selectedNode: node }))}
+            onAskNodeQuestion={handleNodeQuestion}
+            isSending={state.isSending}
+          />
         </div>
       ) : null}
 
-      {isChatOpen ? (
-        <div className="window-no-drag fixed right-5 top-16 z-50 h-[min(700px,calc(100vh-84px))] w-[430px] max-w-[calc(100vw-40px)]">
+      {isChatVisible ? (
+        <div
+          className={[
+            'window-no-drag fixed z-[80]',
+            isMindmapOpen
+              ? 'right-3 top-3 h-[min(700px,calc(100vh-24px))] w-[430px]'
+              : 'inset-0'
+          ].join(' ')}
+        >
+          {isMindmapOpen ? (
+            <ChatTuckButton onClick={() => setIsChatVisible(false)} />
+          ) : null}
           <ChatPanel
             messages={state.messages}
             input={input}
@@ -287,39 +260,22 @@ export default function App() {
             agentOpinions={state.agentOpinions}
             suggestedQuestions={state.suggestedQuestions}
             onSuggestedQuestion={handleSuggestedQuestion}
-            onClose={() => setIsChatOpen(false)}
+            onToggleMindmap={toggleMindmap}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onMinimizeWindow={() => window.desktopWindow?.minimize()}
+            onCloseWindow={() => window.desktopWindow?.close()}
+            isMindmapOpen={isMindmapOpen}
+            providerLabel={activeProvider?.label || state.provider}
+            model={state.model}
           />
         </div>
       ) : (
-        <button
-          type="button"
-          className="window-no-drag fixed right-5 top-16 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-950/76 text-cyan-200 shadow-xl transition hover:bg-slate-900"
-          onClick={() => setIsChatOpen(true)}
-          title="Open chat"
-          aria-label="Open chat"
-        >
-          <MessageCircle size={20} />
-        </button>
+        <ChatRevealTab onClick={() => setIsChatVisible(true)} />
       )}
 
-      {isMindmapOpen ? (
-        <div className="window-no-drag fixed inset-4 z-40 rounded-lg bg-slate-950/42 backdrop-blur-sm">
-          <button
-            type="button"
-            className="absolute right-4 top-4 z-50 inline-flex h-9 w-9 items-center justify-center rounded-md border border-cyan-300/15 bg-slate-950/82 text-slate-300 shadow-lg transition hover:bg-slate-900"
-            onClick={() => setIsMindmapOpen(false)}
-            title="Close mind map"
-            aria-label="Close mind map"
-          >
-            <X size={17} />
-          </button>
-          <MindMapPanel
-            mindmap={state.mindmap}
-            selectedNode={state.selectedNode}
-            onSelectNode={(node) => setState((current) => ({ ...current, selectedNode: node }))}
-            onAskNodeQuestion={handleNodeQuestion}
-            isSending={state.isSending}
-          />
+      {state.error ? (
+        <div className="window-no-drag fixed bottom-4 left-1/2 z-[95] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-md border border-rose-300/30 bg-rose-950/88 px-4 py-2 text-sm text-rose-100 shadow-lg">
+          {state.error}
         </div>
       ) : null}
 

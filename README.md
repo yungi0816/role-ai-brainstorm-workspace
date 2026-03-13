@@ -168,9 +168,12 @@ Status:
 Goal:
 
 - Send chat messages with Enter while keeping Shift+Enter for line breaks
-- Move brainstorming chat into a compact floating panel that can be opened and closed
+- Make the desktop software open as the chat window itself instead of a full workspace canvas
 - Move provider/model controls into a separate AI settings panel
-- Open the mind map from a globe button and show it as a larger visual workspace
+- Place globe, settings, minimize, and close controls inside the chat header
+- Expand the desktop window from the chat shell when the globe button is pressed
+- Render the mind map in the newly expanded left/bottom area while keeping chat above it
+- Add a `>` tab near the chat side so the chat panel can be tucked away and restored in expanded mode
 - Add subtle animated edges and orbit styling for a restrained 3D-like mind map feel
 - Remove the default Electron menu/title bar and expose only custom minimize/close controls
 - Shift the visual language from a bright web app layout toward a balanced desktop cyber-tool theme
@@ -178,6 +181,7 @@ Goal:
 Status:
 
 - Completed locally as `feat: refine desktop ux prototype`
+- Refined locally as `feat: align chat-first desktop shell`
 
 ## Planned Roadmap
 

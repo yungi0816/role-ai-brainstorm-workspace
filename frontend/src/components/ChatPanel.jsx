@@ -1,4 +1,4 @@
-import { Send, X } from 'lucide-react';
+import { Globe2, Minus, Send, Settings, X } from 'lucide-react';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
 function MessageBubble({ message }) {
@@ -31,7 +31,13 @@ export default function ChatPanel({
   agentOpinions,
   suggestedQuestions,
   onSuggestedQuestion,
-  onClose
+  onToggleMindmap,
+  onOpenSettings,
+  onMinimizeWindow,
+  onCloseWindow,
+  isMindmapOpen,
+  providerLabel,
+  model
 }) {
   function handleComposerKeyDown(event) {
     if (event.key !== 'Enter' || event.shiftKey) {
@@ -43,21 +49,57 @@ export default function ChatPanel({
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/86 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-3 border-b border-cyan-300/10 bg-slate-950/84 px-4 py-3">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/88 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
+      <div className="window-drag flex items-center justify-between gap-3 border-b border-cyan-300/10 bg-slate-950/92 px-3 py-2">
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold text-slate-50">Brainstorm Chat</h1>
-          <p className="text-xs text-slate-400">Enter to send, Shift+Enter for newline</p>
+          <p className="truncate text-[11px] text-slate-400">
+            {providerLabel} / {model}
+          </p>
         </div>
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800"
-          onClick={onClose}
-          title="Close chat"
-          aria-label="Close chat"
-        >
-          <X size={16} />
-        </button>
+        <div className="window-no-drag flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            className={[
+              'inline-flex h-8 w-8 items-center justify-center rounded-md border transition',
+              isMindmapOpen
+                ? 'border-cyan-300/50 bg-cyan-400/16 text-cyan-100'
+                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-300/40 hover:bg-slate-800'
+            ].join(' ')}
+            onClick={onToggleMindmap}
+            title={isMindmapOpen ? 'Close mind map' : 'Open mind map'}
+            aria-label={isMindmapOpen ? 'Close mind map' : 'Open mind map'}
+          >
+            <Globe2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800"
+            onClick={onOpenSettings}
+            title="Settings"
+            aria-label="Settings"
+          >
+            <Settings size={15} />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800"
+            onClick={onMinimizeWindow}
+            title="Minimize"
+            aria-label="Minimize"
+          >
+            <Minus size={15} />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-300/20 bg-slate-900 text-slate-300 transition hover:border-rose-300/50 hover:bg-rose-950/70 hover:text-rose-100"
+            onClick={onCloseWindow}
+            title="Close"
+            aria-label="Close"
+          >
+            <X size={15} />
+          </button>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
