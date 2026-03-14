@@ -6,7 +6,7 @@ export class GeminiCliProvider extends BaseProvider {
     super({
       id: 'gemini-cli',
       label: 'Gemini CLI',
-      status: 'interface_ready',
+      status: 'ready',
       models: ['gemini-cli-default'],
       capabilities: ['child-process', 'json-response']
     });

@@ -1,4 +1,4 @@
-import { Globe2, Minus, Send, Settings, X } from 'lucide-react';
+import { Globe2, MessageCircle, Send, Settings } from 'lucide-react';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
 function MessageBubble({ message }) {
@@ -32,9 +32,8 @@ export default function ChatPanel({
   suggestedQuestions,
   onSuggestedQuestion,
   onToggleMindmap,
+  onHideChat,
   onOpenSettings,
-  onMinimizeWindow,
-  onCloseWindow,
   isMindmapOpen,
   providerLabel,
   model
@@ -57,7 +56,18 @@ export default function ChatPanel({
             {providerLabel} / {model}
           </p>
         </div>
-        <div className="window-no-drag flex shrink-0 items-center gap-1">
+        <div className="window-no-drag flex shrink-0 items-center gap-1 pr-[76px]">
+          {isMindmapOpen ? (
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800"
+              onClick={onHideChat}
+              title="Hide chat"
+              aria-label="Hide chat"
+            >
+              <MessageCircle size={15} />
+            </button>
+          ) : null}
           <button
             type="button"
             className={[
@@ -80,24 +90,6 @@ export default function ChatPanel({
             aria-label="Settings"
           >
             <Settings size={15} />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800"
-            onClick={onMinimizeWindow}
-            title="Minimize"
-            aria-label="Minimize"
-          >
-            <Minus size={15} />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-300/20 bg-slate-900 text-slate-300 transition hover:border-rose-300/50 hover:bg-rose-950/70 hover:text-rose-100"
-            onClick={onCloseWindow}
-            title="Close"
-            aria-label="Close"
-          >
-            <X size={15} />
           </button>
         </div>
       </div>

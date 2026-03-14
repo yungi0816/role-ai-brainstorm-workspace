@@ -182,6 +182,7 @@ Status:
 
 - Completed locally as `feat: refine desktop ux prototype`
 - Refined locally as `feat: align chat-first desktop shell`
+- Refined locally as `fix: polish shared desktop controls`
 
 ## Planned Roadmap
 

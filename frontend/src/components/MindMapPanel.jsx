@@ -196,7 +196,7 @@ export default function MindMapPanel({
 
   return (
     <section className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/92 shadow-2xl shadow-cyan-950/30">
-      <div className="border-b border-cyan-300/10 px-5 py-3">
+      <div className="window-drag border-b border-cyan-300/10 px-5 py-3 pr-24">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-50">Mind Map</h2>
           <div className="text-xs text-slate-400">
