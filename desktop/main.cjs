@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require('electron');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
@@ -151,6 +151,14 @@ ipcMain.handle('window:set-mindmap-expanded', (event, expanded) => {
     width: target.width,
     height: target.height
   }, true);
+});
+
+ipcMain.handle('shell:open-external', async (event, url) => {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    return;
+  }
+
+  await shell.openExternal(url);
 });
 
 app.whenReady()

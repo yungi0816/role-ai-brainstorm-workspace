@@ -22,6 +22,11 @@ export async function fetchOllamaModels() {
   return data;
 }
 
+export async function pullOllamaModel(model) {
+  const { data } = await api.post('/providers/ollama/models/pull', { model });
+  return data;
+}
+
 export async function sendChatMessage(payload) {
   const { data } = await api.post('/chat', payload);
   return data;

@@ -10,3 +10,7 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   close: () => ipcRenderer.invoke('window:close'),
   setMindmapExpanded: (expanded) => ipcRenderer.invoke('window:set-mindmap-expanded', Boolean(expanded))
 });
+
+contextBridge.exposeInMainWorld('desktopShell', {
+  openExternal: (url) => ipcRenderer.invoke('shell:open-external', url)
+});

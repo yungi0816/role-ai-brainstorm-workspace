@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import OllamaRuntimePanel from './OllamaRuntimePanel.jsx';
 import ProviderSelector from './ProviderSelector.jsx';
 
 export default function SettingsPanel({
@@ -44,6 +45,12 @@ export default function SettingsPanel({
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
           />
+          <div className="mt-4">
+            <OllamaRuntimePanel
+              isActive={provider === 'ollama'}
+              selectedModel={model}
+            />
+          </div>
         </div>
       </aside>
     </div>
