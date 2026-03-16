@@ -1,261 +1,106 @@
 # Role AI Brainstorm Workspace
 
-Role-based AI brainstorming desktop software with a chat-first interface and an incrementally updated mind map.
-
-## Current Scope
-
-This repository is being built in small, reviewable phases. Commits are created after each completed phase, while pushes are batched until requested.
-
-The project started as a web app MVP and has moved into a packaged desktop software direction. The frontend and backend remain separately runnable for development, while the Electron app is the target runtime.
-
-## Phase Log
-
-### Phase 0: Repository Setup
-
-- Created the GitHub repository: `yungi0816/role-ai-brainstorm-workspace`
-- Initialized the local Git repository on `main`
-- Connected `origin` to the GitHub repository
-- Initial push was deferred until the first phase commit was ready
-
-### Phase 1: Backend Server and SQLite Foundation
-
-Goal:
-
-- Add the Node.js/Express backend shell
-- Add SQLite schema and database initialization
-- Add route placeholders for the requested API surface
-- Add environment and local run documentation
-
-Status:
-
-- Committed and pushed as `chore: initialize backend foundation`
-
-### Phase 2: Provider Common Interface
-
-Goal:
-
-- Add the provider base contract
-- Add provider classes for Ollama, Gemini CLI, OpenAI, and Copilot
-- Add an AI router service for provider lookup and model validation
-- Route provider API responses through the provider registry
-- Keep actual Ollama runtime checks and real AI generation for later phases
-
-Status:
-
-- Completed locally and pushed as `feat: add provider interface layer`
-
-### Phase 3: Ollama Runtime and Provider
-
-Goal:
-
-- Detect whether the Ollama CLI is installed
-- Detect whether an Ollama process is running
-- Check the Ollama HTTP API at `OLLAMA_HOST`
-- Return local Ollama models from `/api/tags`
-- Expose the supported small local model candidates
-- Prepare a non-streaming pull function for supported small local models
-- Add a raw text generation function for the Ollama provider
-
-Status:
-
-- Completed locally and pushed as `feat: add ollama runtime checks`
-
-### Phase 4: Prompt Service and JSON Normalization
-
-Goal:
-
-- Build the role-based brainstorming system prompt in `promptService`
-- Require provider responses to return JSON only
-- Normalize provider responses into the common AI response structure
-- Add fallback parsing when a provider returns malformed JSON
-- Keep mind map persistence for the next patch service phase
-
-Status:
-
-- Completed locally as `feat: normalize ai json responses`
-
-### Phase 5: Mind Map Patch Persistence
-
-Goal:
-
-- Apply normalized `mindmapPatch` objects to SQLite incrementally
-- Insert, update, and remove mind map nodes and edges without regenerating the whole map
-- Skip invalid patch entries, including edges whose endpoints do not exist
-- Store role-based agent opinions for each assistant message
-- Return the updated full mind map plus patch application metadata from chat responses
-
-Status:
-
-- Completed locally as `feat: persist mindmap patches`
-
-### Phase 6: React Chat UI
-
-Goal:
-
-- Add a Vite React frontend scaffold
-- Add Tailwind CSS styling
-- Add API client functions for providers, chat, Ollama status/models, and node questions
-- Add provider/model selection controls
-- Add chat message input and response display
-- Add role opinion cards below AI responses
-- Add a basic mind map data panel for the next React Flow phase
-
-Status:
-
-- Completed locally as `feat: add react chat workspace`
-
-### Phase 7: React Flow Mind Map
-
-Goal:
-
-- Replace the placeholder mind map list with a React Flow canvas
-- Convert saved mind map nodes and edges into React Flow elements
-- Style nodes by semantic type
-- Support node selection and pane deselection
-- Show a selected-node detail summary for the next node-question phase
-
-Status:
-
-- Completed locally as `feat: render mindmap with react flow`
-
-### Desktop Shell Phase: Electron Runtime
-
-Goal:
-
-- Add an Electron desktop shell
-- Start the local Express backend from the desktop app
-- Store the desktop SQLite database in Electron `userData`
-- Load the React production build in a desktop window
-- Expose the backend API URL to the renderer through a preload bridge
-- Keep installer packaging for the next desktop packaging phase
-
-Status:
-
-- Completed locally as `feat: add electron desktop shell`
-
-### Desktop Packaging Phase: Windows Installer
-
-Goal:
-
-- Switch the backend database layer from native `better-sqlite3` to Node's built-in `node:sqlite`
-- Run the Express backend inside the Electron main process without spawning an external `node` command
-- Add `electron-builder` configuration for Windows NSIS installer builds
-- Copy backend and frontend runtime resources into the packaged app
-- Generate an unpacked Windows desktop build
-- Generate a Windows setup executable
-
-Status:
-
-- Completed locally as `feat: package desktop installer`
-
-### Phase 10: Node Click Follow-up Questions
-
-Goal:
-
-- Implement `POST /api/mindmap/node-question` as a real AI turn
-- Reuse the selected conversation's provider and model for node follow-up questions
-- Pass selected node context into the role-based prompt
-- Save the node question as a user message and persist the assistant answer, agent opinions, and mind map patch
-- Add a selected-node question form to the React Flow side panel
-- Fix Korean prompt/UI strings that were required for role normalization
-
-Status:
-
-- Completed locally as `feat: add node follow-up questions`
-
-### Phase 11: Desktop UX Prototype
-
-Goal:
-
-- Send chat messages with Enter while keeping Shift+Enter for line breaks
-- Make the desktop software open as the chat window itself instead of a full workspace canvas
-- Move provider/model controls into a separate AI settings panel
-- Place globe, settings, minimize, and close controls inside the chat header
-- Expand the desktop window from the chat shell when the globe button is pressed
-- Render the mind map in the newly expanded left/bottom area while keeping chat above it
-- Add a `>` tab near the chat side so the chat panel can be tucked away and restored in expanded mode
-- Add subtle animated edges and orbit styling for a restrained 3D-like mind map feel
-- Remove the default Electron menu/title bar and expose only custom minimize/close controls
-- Shift the visual language from a bright web app layout toward a balanced desktop cyber-tool theme
-
-Status:
-
-- Completed locally as `feat: refine desktop ux prototype`
-- Refined locally as `feat: align chat-first desktop shell`
-- Refined locally as `fix: polish shared desktop controls`
-- Refined locally as `feat: add ollama setup panel`
-
-## Planned Roadmap
-
-1. Backend server and SQLite database
-2. Provider common interface
-3. Ollama runtime and provider
-4. Prompt service and normalized JSON response contract
-5. Mind map patch service
-6. React chat UI
-7. React Flow mind map
-8. Electron desktop shell
-9. Desktop installer packaging
-10. Node click follow-up questions
-11. Desktop UX prototype
-12. Gemini CLI, OpenAI, and Copilot provider implementations/stubs
-13. README and GitHub documentation polish
-
-## Backend Setup
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-npm run dev
+Role AI Brainstorm Workspace is a desktop-first brainstorming tool that combines a compact chat interface, role-based AI responses, and an incrementally updated mind map.
+
+The project began as a web MVP and is now moving toward packaged Windows desktop software. The frontend and backend remain independently runnable for development, while the Electron shell is the target user runtime.
+
+## Navigation
+
+| Area | Document |
+| --- | --- |
+| Documentation Index | [docs/README.md](docs/README.md) |
+| Architecture | [docs/architecture/README.md](docs/architecture/README.md) |
+| API | [docs/api/README.md](docs/api/README.md) |
+| Database | [docs/database/README.md](docs/database/README.md) |
+| Desktop Packaging | [docs/deployment/README.md](docs/deployment/README.md) |
+| Development Workflow | [docs/workflow/README.md](docs/workflow/README.md) |
+| Roadmap and Phase Log | [docs/roadmap/README.md](docs/roadmap/README.md) |
+| Architecture Decisions | [docs/adr/README.md](docs/adr/README.md) |
+
+## Core Capabilities
+
+| Capability | Description | Status |
+| --- | --- | --- |
+| Chat-first desktop shell | Electron opens as a compact chat window with custom minimize and close controls. | Implemented |
+| Role-based brainstorming | AI output is normalized into opinions from idea bank, critic, reviewer, implementation designer, and summarizer roles. | Implemented |
+| Mind map patching | AI responses update the stored mind map incrementally instead of regenerating it. | Implemented |
+| Node follow-up questions | Selected mind map nodes can be used as follow-up context for additional AI turns. | Implemented |
+| Ollama runtime checks | The app detects Ollama install, server connection, local models, and offers download/model pull actions. | Implemented |
+| Gemini CLI provider | Child-process provider interface exists and is marked ready when selected. | Basic implementation |
+| OpenAI provider | API-key-gated provider shell exists. | Planned implementation |
+| GitHub Copilot provider | Provider contract exists for future OAuth/SDK integration. | Stub |
+
+## Architecture Overview
+
+```mermaid
+flowchart LR
+    User["Desktop User"] --> Electron["Electron Shell"]
+    Electron --> React["React Renderer"]
+    React --> API["Express API"]
+    API --> Services["AI, Conversation, Mind Map Services"]
+    Services --> SQLite["SQLite Database"]
+    Services --> Providers["AI Providers"]
+    Providers --> Ollama["Ollama Local"]
+    Providers --> Gemini["Gemini CLI"]
+    Providers --> OpenAI["OpenAI GPT"]
+    Providers --> Copilot["Copilot Stub"]
 ```
 
-Health check:
+The desktop shell starts the Express backend in-process, stores the SQLite database under Electron `userData` by default, and loads the built React renderer. See [docs/architecture/README.md](docs/architecture/README.md) for subsystem boundaries and data flow.
 
-```bash
-curl http://localhost:4000/api/health
-```
+## Technology Stack
 
-The backend creates the SQLite database file at `backend/data/app.db` by default.
+| Layer | Technologies |
+| --- | --- |
+| Desktop Runtime | Electron, electron-builder |
+| Frontend | React, Vite, Tailwind CSS, React Flow, Axios |
+| Backend | Node.js, Express, dotenv, child_process |
+| Persistence | SQLite through Node `node:sqlite` |
+| AI Providers | Ollama Local, Gemini CLI, OpenAI shell, Copilot stub |
 
-## Frontend Setup
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-Open:
+## Repository Structure
 
 ```text
-http://localhost:5173
+.
+|-- backend/     Express API, providers, services, SQLite schema
+|-- desktop/     Electron shell, preload bridge, packaging configuration
+|-- frontend/    React renderer, UI components, API client
+|-- docs/        Architecture, API, database, deployment, workflow, roadmap, ADRs
+|-- README.md    Executive overview and documentation navigation
+|-- CHANGELOG.md
+`-- CONTRIBUTING.md
 ```
 
-## Desktop Setup
+## Quick Start
 
-The desktop app runs the backend locally and loads the built React app inside Electron.
+Install dependencies per package:
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+cd ../desktop && npm install
+```
+
+Run the desktop app:
 
 ```bash
 cd desktop
-npm install
 npm start
 ```
 
-Smoke test without opening the app window:
+Run backend and frontend separately for development:
 
 ```bash
-cd desktop
-npm run smoke
+cd backend
+npm run dev
 ```
-
-Create an unpacked Windows app:
 
 ```bash
-cd desktop
-npm run pack
+cd frontend
+npm run dev
 ```
+
+## Desktop Build
 
 Create a Windows installer:
 
@@ -270,20 +115,36 @@ Installer output:
 desktop/artifacts/Role AI Brainstorm Workspace Setup 0.1.0.exe
 ```
 
-The desktop runtime stores its SQLite database under Electron's `userData` directory unless `DB_FILE` is explicitly provided.
+Packaging details are documented in [docs/deployment/README.md](docs/deployment/README.md).
 
-## API Surface
+## Environment
 
-Implemented API:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | No | Backend API port. Defaults to `4000`. |
+| `DB_FILE` | No | SQLite database path. Desktop runtime defaults to Electron `userData`. |
+| `CORS_ORIGIN` | No | Comma-separated allowed origins for standalone backend mode. |
+| `OLLAMA_HOST` | No | Ollama HTTP endpoint. Defaults to `http://localhost:11434`. |
+| `OPENAI_API_KEY` | For OpenAI | Enables future OpenAI provider execution. |
+| `GEMINI_CLI_COMMAND` | No | Gemini CLI executable name. Defaults to `gemini`. |
+| `VITE_API_BASE_URL` | Frontend dev only | API base URL for Vite development mode. |
 
-- `GET /api/health`
-- `POST /api/chat`
-- `GET /api/providers`
-- `GET /api/providers/ollama/status`
-- `GET /api/providers/ollama/models`
-- `POST /api/providers/ollama/models/pull`
-- `GET /api/mindmap/:conversationId`
-- `POST /api/mindmap/node-question`
+## Verification
 
-Node follow-up questions use the conversation's saved provider/model, pass the selected node into the AI prompt, and return the same normalized response structure as `POST /api/chat`.
+```bash
+cd frontend
+npm run build
+```
 
+```bash
+cd desktop
+npm run smoke
+```
+
+## Documentation
+
+Start with [docs/README.md](docs/README.md). Deep technical details are intentionally kept out of this README so future maintainers can navigate by subsystem.
+
+## License
+
+No repository license has been committed yet.
