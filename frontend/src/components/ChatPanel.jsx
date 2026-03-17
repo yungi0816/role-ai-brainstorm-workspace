@@ -22,6 +22,20 @@ function MessageBubble({ message }) {
   );
 }
 
+function ThinkingIndicator() {
+  return (
+    <div className="rounded-md border border-cyan-300/20 bg-slate-900/74 p-3 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-cyan-100">
+        <span className="h-2 w-2 rounded-full bg-cyan-300" />
+        Preparing response and map update
+      </div>
+      <div className="progress-track">
+        <span />
+      </div>
+    </div>
+  );
+}
+
 export default function ChatPanel({
   messages,
   input,
@@ -53,7 +67,7 @@ export default function ChatPanel({
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold text-slate-50">Brainstorm Chat</h1>
           <p className="truncate text-[11px] text-slate-400">
-            {providerLabel} / {model}
+            {isSending ? 'Working...' : `${providerLabel} / ${model}`}
           </p>
         </div>
         <div className="window-no-drag flex shrink-0 items-center gap-1 pr-[76px]">
@@ -105,6 +119,8 @@ export default function ChatPanel({
           )}
 
           <AgentOpinionPanel opinions={agentOpinions} />
+
+          {isSending ? <ThinkingIndicator /> : null}
 
           {suggestedQuestions?.length > 0 ? (
             <div className="flex flex-wrap gap-2">

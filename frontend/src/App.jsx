@@ -252,7 +252,12 @@ export default function App() {
       <WindowControls />
 
       {isMindmapOpen ? (
-        <div className="absolute inset-3 z-10">
+        <div
+          className={[
+            'absolute bottom-3 left-3 top-3 z-10',
+            isChatVisible ? 'right-[446px]' : 'right-3'
+          ].join(' ')}
+        >
           <MindMapPanel
             mindmap={state.mindmap}
             selectedNode={state.selectedNode}

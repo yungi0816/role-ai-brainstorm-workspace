@@ -1,9 +1,20 @@
-import { useMemo, useState } from 'react';
-import { Send } from 'lucide-react';
+import { memo, useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  HelpCircle,
+  Lightbulb,
+  ListTodo,
+  Send,
+  Sparkles,
+  Wrench
+} from 'lucide-react';
 import {
   Background,
   Controls,
+  Handle,
   MiniMap,
+  Position,
   ReactFlow,
   ReactFlowProvider
 } from '@xyflow/react';
@@ -19,73 +30,279 @@ const TYPE_LABEL = {
 };
 
 const TYPE_STYLE = {
-  idea: { border: '#22d3ee', background: 'rgba(8, 47, 73, 0.92)' },
-  risk: { border: '#fb7185', background: 'rgba(76, 5, 25, 0.9)' },
-  feature: { border: '#818cf8', background: 'rgba(30, 27, 75, 0.9)' },
-  task: { border: '#f59e0b', background: 'rgba(69, 39, 8, 0.9)' },
-  decision: { border: '#34d399', background: 'rgba(6, 78, 59, 0.88)' },
-  question: { border: '#a78bfa', background: 'rgba(46, 16, 101, 0.9)' }
+  idea: {
+    border: '#22d3ee',
+    background: 'rgba(8, 47, 73, 0.92)',
+    iconBackground: 'rgba(34, 211, 238, 0.16)',
+    Icon: Lightbulb
+  },
+  risk: {
+    border: '#fb7185',
+    background: 'rgba(76, 5, 25, 0.9)',
+    iconBackground: 'rgba(251, 113, 133, 0.16)',
+    Icon: AlertTriangle
+  },
+  feature: {
+    border: '#818cf8',
+    background: 'rgba(30, 27, 75, 0.9)',
+    iconBackground: 'rgba(129, 140, 248, 0.16)',
+    Icon: Sparkles
+  },
+  task: {
+    border: '#f59e0b',
+    background: 'rgba(69, 39, 8, 0.9)',
+    iconBackground: 'rgba(245, 158, 11, 0.16)',
+    Icon: ListTodo
+  },
+  decision: {
+    border: '#34d399',
+    background: 'rgba(6, 78, 59, 0.88)',
+    iconBackground: 'rgba(52, 211, 153, 0.16)',
+    Icon: CheckCircle2
+  },
+  question: {
+    border: '#a78bfa',
+    background: 'rgba(46, 16, 101, 0.9)',
+    iconBackground: 'rgba(167, 139, 250, 0.16)',
+    Icon: HelpCircle
+  }
 };
 
-function getNodePosition(node, index) {
-  const x = Number(node.x);
-  const y = Number(node.y);
+const nodeTypes = {
+  mindMap: memo(MindMapNode)
+};
 
-  if (Number.isFinite(x) && Number.isFinite(y)) {
-    return { x, y };
+function normalizeParentId(node) {
+  return node?.parent_id || node?.parentId || null;
+}
+
+function createGraph(sourceNodes, sourceEdges) {
+  const nodeIds = new Set(sourceNodes.map((node) => node.id));
+  const links = [];
+  const linkKeys = new Set();
+  const incoming = new Map(sourceNodes.map((node) => [node.id, 0]));
+
+  function addLink(edge, visual = false) {
+    const source = edge?.source;
+    const target = edge?.target;
+    if (!nodeIds.has(source) || !nodeIds.has(target) || source === target) {
+      return;
+    }
+
+    const key = `${source}->${target}`;
+    if (linkKeys.has(key)) {
+      return;
+    }
+
+    linkKeys.add(key);
+    links.push({ ...edge, visual });
+    incoming.set(target, (incoming.get(target) || 0) + 1);
+  }
+
+  for (const edge of sourceEdges) {
+    addLink(edge, false);
+  }
+
+  for (const node of sourceNodes) {
+    const parentId = normalizeParentId(node);
+    if (parentId) {
+      addLink({
+        id: `visual-parent-${parentId}-${node.id}`,
+        source: parentId,
+        target: node.id,
+        label: ''
+      }, true);
+    }
+  }
+
+  const roots = sourceNodes.filter((node) => (incoming.get(node.id) || 0) === 0);
+  const primaryRoot = roots[0] || sourceNodes[0] || null;
+
+  if (primaryRoot) {
+    for (const root of roots) {
+      if (root.id === primaryRoot.id) {
+        continue;
+      }
+
+      addLink({
+        id: `visual-root-${primaryRoot.id}-${root.id}`,
+        source: primaryRoot.id,
+        target: root.id,
+        label: ''
+      }, true);
+    }
   }
 
   return {
-    x: (index % 4) * 240,
-    y: Math.floor(index / 4) * 160
+    links,
+    rootId: primaryRoot?.id || null
   };
 }
 
-function toFlowNode(node, index, selectedNode) {
-  const tone = TYPE_STYLE[node.type] || TYPE_STYLE.idea;
+function computeTreeLayout(sourceNodes, links, rootId) {
+  const childrenById = new Map(sourceNodes.map((node) => [node.id, []]));
+  const nodeById = new Map(sourceNodes.map((node, index) => [node.id, { node, index }]));
+
+  for (const link of links) {
+    if (!childrenById.has(link.source) || !nodeById.has(link.target)) {
+      continue;
+    }
+
+    childrenById.get(link.source).push(link.target);
+  }
+
+  for (const children of childrenById.values()) {
+    children.sort((a, b) => nodeById.get(a).index - nodeById.get(b).index);
+  }
+
+  const positions = new Map();
+  const visited = new Set();
+  let nextLeaf = 0;
+  const depthGap = 290;
+  const verticalGap = 132;
+
+  function placeNode(id, depth, stack = new Set()) {
+    if (stack.has(id)) {
+      return nextLeaf * verticalGap;
+    }
+
+    if (visited.has(id)) {
+      return positions.get(id)?.y || 0;
+    }
+
+    visited.add(id);
+    const nextStack = new Set(stack);
+    nextStack.add(id);
+
+    const childIds = (childrenById.get(id) || []).filter((childId) => !stack.has(childId));
+    let y;
+
+    if (childIds.length === 0) {
+      y = nextLeaf * verticalGap;
+      nextLeaf += 1;
+    } else {
+      const childYs = childIds.map((childId) => placeNode(childId, depth + 1, nextStack));
+      y = childYs.reduce((sum, childY) => sum + childY, 0) / childYs.length;
+    }
+
+    positions.set(id, {
+      x: depth * depthGap,
+      y
+    });
+
+    return y;
+  }
+
+  if (rootId) {
+    placeNode(rootId, 0);
+  }
+
+  for (const node of sourceNodes) {
+    if (!visited.has(node.id)) {
+      placeNode(node.id, 1);
+    }
+  }
+
+  const rootY = positions.get(rootId)?.y || 0;
+  for (const [id, position] of positions) {
+    positions.set(id, {
+      x: position.x,
+      y: position.y - rootY
+    });
+  }
+
+  return positions;
+}
+
+function MindMapNode({ data, selected }) {
+  const tone = TYPE_STYLE[data.raw.type] || TYPE_STYLE.idea;
+  const Icon = tone.Icon || Wrench;
+
+  return (
+    <div
+      className={[
+        'mindmap-node-card',
+        data.isRoot ? 'mindmap-node-card-root' : 'mindmap-node-card-branch',
+        selected ? 'is-selected' : ''
+      ].join(' ')}
+      style={{
+        '--node-border': tone.border,
+        '--node-bg': tone.background,
+        '--node-icon-bg': tone.iconBackground
+      }}
+    >
+      <Handle className="mindmap-handle" type="target" position={Position.Left} />
+      <Handle className="mindmap-handle" type="source" position={Position.Right} />
+      <div className="mindmap-node-card-header">
+        <span className="mindmap-node-icon">
+          <Icon size={data.isRoot ? 22 : 16} />
+        </span>
+        <span className="mindmap-node-type">{TYPE_LABEL[data.raw.type] || data.raw.type}</span>
+      </div>
+      <div className="mindmap-node-label">{data.label}</div>
+      {data.isRoot && data.raw.description ? (
+        <div className="mindmap-node-description">{data.raw.description}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function MiniMapNode({ x, y, width, height, color }) {
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={Math.max(width, 42)}
+      height={Math.max(height, 22)}
+      rx={6}
+      ry={6}
+      fill={color || '#38bdf8'}
+      stroke="#e0f2fe"
+      strokeWidth={6}
+    />
+  );
+}
+
+function toFlowNode(node, position, selectedNode, rootId) {
   const isSelected = selectedNode?.id === node.id;
+  const isRoot = node.id === rootId;
+  const width = isRoot ? 260 : 174;
+  const height = isRoot ? 138 : 74;
 
   return {
     id: node.id,
-    position: getNodePosition(node, index),
+    type: 'mindMap',
+    position,
+    width,
+    height,
     data: {
       label: node.label,
-      raw: node
+      raw: node,
+      isRoot
     },
-    className: 'mindmap-node',
     selected: isSelected,
     style: {
-      width: 184,
-      minHeight: 64,
-      border: `1px solid ${tone.border}`,
-      borderRadius: 8,
-      background: tone.background,
-      color: '#f8fafc',
-      fontSize: 13,
-      fontWeight: 600,
-      padding: 10,
-      boxShadow: isSelected
-        ? '0 20px 42px rgba(34, 211, 238, 0.22), 0 0 0 2px rgba(34, 211, 238, 0.24)'
-        : '0 14px 34px rgba(0, 0, 0, 0.34)',
-      transform: isSelected
-        ? 'perspective(900px) rotateX(2deg) translateZ(14px)'
-        : 'perspective(900px) rotateX(3deg)'
+      width,
+      height
     }
   };
 }
 
 function toFlowEdge(edge) {
+  const isVisual = Boolean(edge.visual);
+
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    label: edge.label || undefined,
+    label: isVisual ? undefined : edge.label || undefined,
     type: 'smoothstep',
-    animated: true,
+    animated: !isVisual,
     style: {
-      stroke: '#0e7490',
-      strokeWidth: 2,
-      filter: 'drop-shadow(0 0 7px rgba(14, 116, 144, 0.34))'
+      stroke: isVisual ? '#475569' : '#0e7490',
+      strokeWidth: isVisual ? 1.5 : 2,
+      strokeDasharray: isVisual ? '5 8' : undefined,
+      filter: isVisual ? undefined : 'drop-shadow(0 0 7px rgba(14, 116, 144, 0.34))'
     },
     labelStyle: {
       fill: '#cbd5e1',
@@ -185,13 +402,26 @@ export default function MindMapPanel({
 }) {
   const sourceNodes = mindmap?.nodes || [];
   const sourceEdges = mindmap?.edges || [];
+  const graph = useMemo(
+    () => createGraph(sourceNodes, sourceEdges),
+    [sourceNodes, sourceEdges]
+  );
+  const positions = useMemo(
+    () => computeTreeLayout(sourceNodes, graph.links, graph.rootId),
+    [sourceNodes, graph]
+  );
   const flowNodes = useMemo(
-    () => sourceNodes.map((node, index) => toFlowNode(node, index, selectedNode)),
-    [sourceNodes, selectedNode]
+    () => sourceNodes.map((node) => toFlowNode(
+      node,
+      positions.get(node.id) || { x: 0, y: 0 },
+      selectedNode,
+      graph.rootId
+    )),
+    [sourceNodes, positions, selectedNode, graph.rootId]
   );
   const flowEdges = useMemo(
-    () => sourceEdges.map(toFlowEdge),
-    [sourceEdges]
+    () => graph.links.map(toFlowEdge),
+    [graph.links]
   );
 
   return (
@@ -206,6 +436,17 @@ export default function MindMapPanel({
       </div>
 
       <div className="mindmap-orbit-surface relative min-h-0 flex-1 overflow-hidden bg-slate-950">
+        {isSending ? (
+          <div className="mindmap-progress window-no-drag pointer-events-none absolute right-4 top-4 z-20 w-[min(280px,calc(100%-32px))] rounded-md border border-cyan-300/20 bg-slate-950/88 px-3 py-2 shadow-lg shadow-cyan-950/30">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-cyan-100">
+              <span className="h-2 w-2 rounded-full bg-cyan-300" />
+              Updating mind map
+            </div>
+            <div className="progress-track">
+              <span />
+            </div>
+          </div>
+        ) : null}
         {flowNodes.length === 0 ? (
           <div className="absolute inset-4 flex items-center justify-center rounded-md border border-dashed border-cyan-300/20 bg-slate-900/70 text-sm text-slate-400">
             마인드맵 노드가 없습니다.
@@ -216,21 +457,44 @@ export default function MindMapPanel({
               className="mindmap-flow"
               nodes={flowNodes}
               edges={flowEdges}
+              nodeTypes={nodeTypes}
               fitView
-              fitViewOptions={{ padding: 0.25 }}
+              fitViewOptions={{ padding: 0.28 }}
               minZoom={0.35}
-              maxZoom={1.6}
+              maxZoom={1.8}
               nodesDraggable={false}
               onNodeClick={(event, node) => onSelectNode(node.data.raw)}
               onPaneClick={() => onSelectNode(null)}
             >
               <Background color="#164e63" gap={18} size={1} />
-              <Controls showInteractive={false} />
+              <Controls
+                className="mindmap-controls"
+                position="top-left"
+                showInteractive={false}
+                style={{ left: 12, top: 12, bottom: 'auto' }}
+              />
               <MiniMap
+                className="mindmap-minimap"
+                position="top-left"
                 pannable
                 zoomable
+                bgColor="rgba(15, 23, 42, 0.94)"
+                nodeComponent={MiniMapNode}
                 nodeColor={(node) => TYPE_STYLE[node.data.raw.type]?.border || '#0891b2'}
-                maskColor="rgba(241, 245, 249, 0.72)"
+                nodeStrokeColor={(node) => TYPE_STYLE[node.data.raw.type]?.border || '#0891b2'}
+                nodeStrokeWidth={3}
+                nodeBorderRadius={4}
+                maskColor="rgba(2, 6, 23, 0.44)"
+                maskStrokeColor="rgba(34, 211, 238, 0.62)"
+                maskStrokeWidth={1.5}
+                style={{
+                  left: 62,
+                  top: 12,
+                  bottom: 'auto',
+                  right: 'auto',
+                  width: 168,
+                  height: 108
+                }}
               />
             </ReactFlow>
           </ReactFlowProvider>
