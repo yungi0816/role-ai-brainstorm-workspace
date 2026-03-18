@@ -46,6 +46,29 @@ export function validateProviderRequest({ provider: providerId, model }) {
   return provider.getMetadata();
 }
 
+export async function listProviderModels(providerId) {
+  const provider = getProviderOrThrow(providerId);
+  const models = await provider.listModelOptions();
+
+  return {
+    provider: provider.getMetadata(),
+    models,
+    modelOptions: models
+  };
+}
+
+export async function configureProvider(providerId, credentials) {
+  const provider = getProviderOrThrow(providerId);
+  const metadata = await provider.configureCredentials(credentials);
+  const models = await provider.listModelOptions();
+
+  return {
+    provider: metadata,
+    models,
+    modelOptions: models
+  };
+}
+
 export async function generateBrainstormResponse({
   provider: providerId,
   model,

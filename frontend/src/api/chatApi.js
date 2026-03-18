@@ -12,6 +12,26 @@ export async function fetchProviders() {
   return data.providers || [];
 }
 
+export async function fetchProviderModels(providerId) {
+  const { data } = await api.get(`/providers/${providerId}/models`);
+  return data;
+}
+
+export async function authenticateProvider(providerId, payload) {
+  const { data } = await api.post(`/providers/${providerId}/auth`, payload);
+  return data;
+}
+
+export async function fetchConversations() {
+  const { data } = await api.get('/conversations');
+  return data.conversations || [];
+}
+
+export async function fetchConversation(conversationId) {
+  const { data } = await api.get(`/conversations/${conversationId}`);
+  return data;
+}
+
 export async function fetchOllamaStatus() {
   const { data } = await api.get('/providers/ollama/status');
   return data;

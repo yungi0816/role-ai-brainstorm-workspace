@@ -11,6 +11,13 @@ export const OLLAMA_SMALL_LOCAL_MODELS = [
   'llama3.2:1b'
 ];
 
+const OLLAMA_MODEL_SIZE_LABELS = {
+  'gemma3:1b': '약 815 MB',
+  'gemma3:4b': '약 3.3 GB',
+  'qwen2.5-coder:1.5b': '약 986 MB',
+  'llama3.2:1b': '약 1.3 GB'
+};
+
 const REQUEST_TIMEOUT_MS = 5000;
 
 export function getOllamaHost() {
@@ -195,6 +202,10 @@ export async function listOllamaModels() {
       status,
       models: [],
       recommendedModels: OLLAMA_SMALL_LOCAL_MODELS,
+      recommendedModelOptions: OLLAMA_SMALL_LOCAL_MODELS.map((model) => ({
+        id: model,
+        sizeLabel: OLLAMA_MODEL_SIZE_LABELS[model] || 'unknown'
+      })),
       missingRecommendedModels: OLLAMA_SMALL_LOCAL_MODELS
     };
   }
@@ -207,6 +218,10 @@ export async function listOllamaModels() {
     status,
     models,
     recommendedModels: OLLAMA_SMALL_LOCAL_MODELS,
+    recommendedModelOptions: OLLAMA_SMALL_LOCAL_MODELS.map((model) => ({
+      id: model,
+      sizeLabel: OLLAMA_MODEL_SIZE_LABELS[model] || 'unknown'
+    })),
     missingRecommendedModels: OLLAMA_SMALL_LOCAL_MODELS.filter((model) => !localNames.has(model))
   };
 }

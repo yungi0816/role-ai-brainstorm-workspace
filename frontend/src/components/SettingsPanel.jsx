@@ -11,6 +11,8 @@ export default function SettingsPanel({
   onModelChange,
   onRefresh,
   isRefreshing,
+  onProviderAuth,
+  isAuthenticating,
   onClose
 }) {
   if (!isOpen) {
@@ -44,6 +46,8 @@ export default function SettingsPanel({
             onModelChange={onModelChange}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
+            onProviderAuth={onProviderAuth}
+            isAuthenticating={isAuthenticating}
           />
           <div className="mt-4">
             <OllamaRuntimePanel

@@ -41,6 +41,14 @@ export function toAssistantMessage(response) {
     id: response.message?.id || `local-assistant-${crypto.randomUUID()}`,
     role: 'assistant',
     content: response.chatResponse || response.message?.content || '',
+    agentOpinions: response.agentOpinions || response.message?.agentOpinions || [],
     created_at: response.message?.created_at || new Date().toISOString()
   };
+}
+
+export function toConversationMessages(messages = []) {
+  return messages.map((message) => ({
+    ...message,
+    agentOpinions: message.agentOpinions || []
+  }));
 }

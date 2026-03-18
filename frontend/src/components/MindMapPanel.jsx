@@ -115,8 +115,9 @@ function createGraph(sourceNodes, sourceEdges) {
     }
   }
 
+  const explicitRoot = sourceNodes.find((node) => !normalizeParentId(node));
   const roots = sourceNodes.filter((node) => (incoming.get(node.id) || 0) === 0);
-  const primaryRoot = roots[0] || sourceNodes[0] || null;
+  const primaryRoot = explicitRoot || roots[0] || sourceNodes[0] || null;
 
   if (primaryRoot) {
     for (const root of roots) {

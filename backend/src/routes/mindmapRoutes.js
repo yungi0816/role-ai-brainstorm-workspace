@@ -11,7 +11,10 @@ import {
   generateBrainstormResponse,
   validateProviderRequest
 } from '../services/aiRouterService.js';
-import { applyMindmapPatch } from '../services/mindmapPatchService.js';
+import {
+  applyMindmapPatch,
+  ensureRootMindmapNode
+} from '../services/mindmapPatchService.js';
 
 const router = Router();
 
@@ -74,6 +77,11 @@ router.post('/node-question', async (req, res, next) => {
       conversationId: conversation.id,
       role: 'user',
       content: `[${selectedNode.label}] ${trimmedQuestion}`
+    });
+    ensureRootMindmapNode({
+      conversationId: conversation.id,
+      label: conversation.title,
+      description: conversation.title
     });
     const mindmap = getMindmap(conversation.id);
 

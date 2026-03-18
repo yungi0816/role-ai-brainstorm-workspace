@@ -2,6 +2,33 @@ import { spawn } from 'node:child_process';
 import { BaseProvider, ProviderError } from './baseProvider.js';
 
 const STDIN_TASK_PROMPT = 'Use the stdin content as the complete task. Return only the final answer.';
+const DEFAULT_GEMINI_CLI_MODEL = 'gemini-cli-default';
+const GEMINI_CLI_MODEL_OPTIONS = [
+  {
+    id: DEFAULT_GEMINI_CLI_MODEL,
+    label: 'Gemini CLI Default',
+    sizeLabel: 'Cloud / CLI 계정',
+    locality: 'remote'
+  },
+  {
+    id: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
+    sizeLabel: 'Cloud / CLI 계정',
+    locality: 'remote'
+  },
+  {
+    id: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    sizeLabel: 'Cloud / CLI 계정',
+    locality: 'remote'
+  },
+  {
+    id: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
+    sizeLabel: 'Cloud / CLI 계정',
+    locality: 'remote'
+  }
+];
 
 function cleanCliOutput(value, maxLength = 1400) {
   return String(value || '')
@@ -29,7 +56,8 @@ export class GeminiCliProvider extends BaseProvider {
       id: 'gemini-cli',
       label: 'Gemini CLI',
       status: 'ready',
-      models: ['gemini-cli-default'],
+      models: GEMINI_CLI_MODEL_OPTIONS.map((model) => model.id),
+      modelOptions: GEMINI_CLI_MODEL_OPTIONS,
       capabilities: ['child-process', 'json-response']
     });
   }
@@ -38,10 +66,17 @@ export class GeminiCliProvider extends BaseProvider {
     return Boolean(process.env.GEMINI_CLI_COMMAND || 'gemini');
   }
 
-  buildCommand() {
+  buildCommand(model = DEFAULT_GEMINI_CLI_MODEL) {
     const command = process.env.GEMINI_CLI_COMMAND || 'gemini';
+    const modelArgs = model && model !== DEFAULT_GEMINI_CLI_MODEL
+      ? ['--model', model]
+      : [];
 
     if (process.platform === 'win32') {
+      const modelCommand = modelArgs.length
+        ? ` --model ${quotePowerShellValue(model)}`
+        : '';
+
       return {
         command: 'powershell.exe',
         args: [
@@ -50,7 +85,7 @@ export class GeminiCliProvider extends BaseProvider {
           '-ExecutionPolicy',
           'Bypass',
           '-Command',
-          `$input | & ${quotePowerShellValue(command)} --skip-trust --prompt ${quotePowerShellValue(STDIN_TASK_PROMPT)}`
+          `$input | & ${quotePowerShellValue(command)} --skip-trust${modelCommand} --prompt ${quotePowerShellValue(STDIN_TASK_PROMPT)}`
         ],
         options: {
           shell: false,
@@ -64,6 +99,7 @@ export class GeminiCliProvider extends BaseProvider {
       command,
       args: [
         '--skip-trust',
+        ...modelArgs,
         '--prompt',
         STDIN_TASK_PROMPT
       ],
@@ -75,8 +111,8 @@ export class GeminiCliProvider extends BaseProvider {
     };
   }
 
-  runCli(prompt, { timeoutMs = 120000 } = {}) {
-    const { command, args, options } = this.buildCommand();
+  runCli(prompt, { model = DEFAULT_GEMINI_CLI_MODEL, timeoutMs = 120000 } = {}) {
+    const { command, args, options } = this.buildCommand(model);
 
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, options);
@@ -144,7 +180,8 @@ export class GeminiCliProvider extends BaseProvider {
     });
   }
 
-  async generateText({ prompt }) {
-    return this.runCli(prompt);
+  async generateText({ model, prompt }) {
+    this.validateModel(model);
+    return this.runCli(prompt, { model });
   }
 }

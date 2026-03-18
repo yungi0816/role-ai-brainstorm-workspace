@@ -3,14 +3,23 @@ import { MessageCircle, Minus, Settings, X } from 'lucide-react';
 import ChatPanel from './components/ChatPanel.jsx';
 import MindMapPanel from './components/MindMapPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
-import { fetchProviders, sendChatMessage, sendNodeQuestion } from './api/chatApi.js';
+import {
+  authenticateProvider,
+  fetchConversation,
+  fetchConversations,
+  fetchProviderModels,
+  fetchProviders,
+  sendChatMessage,
+  sendNodeQuestion
+} from './api/chatApi.js';
 import {
   createErrorMessage,
   createUserMessage,
   DEFAULT_MODEL,
   DEFAULT_PROVIDER,
   initialConversationState,
-  toAssistantMessage
+  toAssistantMessage,
+  toConversationMessages
 } from './stores/conversationStore.js';
 
 function WindowControls() {
@@ -63,11 +72,49 @@ function HiddenChatLauncher({ onShowChat, onOpenSettings }) {
   );
 }
 
+function getProviderModelIds(provider) {
+  if (!provider) {
+    return [];
+  }
+
+  if (provider.modelOptions?.length) {
+    return provider.modelOptions.map((item) => item.id);
+  }
+
+  return provider.models || [];
+}
+
+function getSendBlockedReason(provider) {
+  if (!provider) {
+    return 'Provider 정보를 불러오는 중입니다.';
+  }
+
+  if (provider.id === 'ollama') {
+    return null;
+  }
+
+  if (provider.status === 'planned') {
+    return `${provider.label}는 아직 OAuth/SDK 연동 예정 상태입니다. 다른 provider를 선택하세요.`;
+  }
+
+  if (!provider.configured || provider.status === 'needs_auth') {
+    return `${provider.label} 인증이 필요합니다. 설정에서 먼저 연결하세요.`;
+  }
+
+  if (!provider.ready) {
+    return `${provider.label} 준비 상태가 아닙니다. 설정에서 상태를 확인하세요.`;
+  }
+
+  return null;
+}
+
 export default function App() {
   const [providers, setProviders] = useState([]);
+  const [conversations, setConversations] = useState([]);
   const [state, setState] = useState(initialConversationState);
   const [input, setInput] = useState('');
   const [isRefreshingProviders, setIsRefreshingProviders] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMindmapOpen, setIsMindmapOpen] = useState(false);
   const [isChatVisible, setIsChatVisible] = useState(true);
@@ -76,6 +123,8 @@ export default function App() {
     () => providers.find((provider) => provider.id === state.provider),
     [providers, state.provider]
   );
+  const sendBlockedReason = getSendBlockedReason(activeProvider);
+  const canSend = !sendBlockedReason;
 
   async function loadProviders() {
     setIsRefreshingProviders(true);
@@ -87,9 +136,10 @@ export default function App() {
         const nextProvider = providerList.find((provider) => provider.id === current.provider)
           || providerList.find((provider) => provider.id === DEFAULT_PROVIDER)
           || providerList[0];
-        const nextModel = nextProvider?.models?.includes(current.model)
+        const modelIds = getProviderModelIds(nextProvider);
+        const nextModel = modelIds.includes(current.model)
           ? current.model
-          : nextProvider?.models?.[0] || DEFAULT_MODEL;
+          : modelIds[0] || DEFAULT_MODEL;
 
         return {
           ...current,
@@ -107,17 +157,136 @@ export default function App() {
     }
   }
 
+  async function loadConversations() {
+    try {
+      setConversations(await fetchConversations());
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+    }
+  }
+
+  function mergeProvider(providerMetadata) {
+    setProviders((current) => {
+      const exists = current.some((provider) => provider.id === providerMetadata.id);
+      if (!exists) {
+        return [...current, providerMetadata];
+      }
+
+      return current.map((provider) => (
+        provider.id === providerMetadata.id ? providerMetadata : provider
+      ));
+    });
+  }
+
+  async function loadProviderModels(providerId) {
+    try {
+      const result = await fetchProviderModels(providerId);
+      mergeProvider({
+        ...result.provider,
+        modelOptions: result.modelOptions || result.models || [],
+        models: (result.modelOptions || result.models || []).map((item) => item.id || item)
+      });
+
+      setState((current) => {
+        if (current.provider !== providerId) {
+          return current;
+        }
+
+        const modelIds = (result.modelOptions || result.models || []).map((item) => item.id || item);
+        return {
+          ...current,
+          model: modelIds.includes(current.model) ? current.model : modelIds[0] || current.model
+        };
+      });
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+    }
+  }
+
   useEffect(() => {
     loadProviders();
+    loadConversations();
   }, []);
 
   function updateProvider(providerId) {
     const nextProvider = providers.find((provider) => provider.id === providerId);
+    const modelIds = getProviderModelIds(nextProvider);
     setState((current) => ({
       ...current,
       provider: providerId,
-      model: nextProvider?.models?.[0] || current.model
+      model: modelIds[0] || current.model
     }));
+    loadProviderModels(providerId);
+  }
+
+  async function handleProviderAuth(providerId, payload) {
+    setIsAuthenticating(true);
+    setState((current) => ({ ...current, error: null }));
+
+    try {
+      const result = await authenticateProvider(providerId, payload);
+      mergeProvider({
+        ...result.provider,
+        modelOptions: result.modelOptions || result.models || [],
+        models: (result.modelOptions || result.models || []).map((item) => item.id || item)
+      });
+      await loadProviderModels(providerId);
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }
+
+  function handleNewChat() {
+    setInput('');
+    setState((current) => ({
+      ...initialConversationState,
+      provider: current.provider,
+      model: current.model
+    }));
+    setIsChatVisible(true);
+  }
+
+  async function handleSelectConversation(conversationId) {
+    if (!conversationId || conversationId === state.conversationId) {
+      return;
+    }
+
+    setState((current) => ({ ...current, isSending: true, error: null }));
+    setIsChatVisible(true);
+
+    try {
+      const snapshot = await fetchConversation(conversationId);
+      setState((current) => ({
+        ...current,
+        conversationId: snapshot.conversation.id,
+        provider: snapshot.conversation.provider,
+        model: snapshot.conversation.model,
+        messages: toConversationMessages(snapshot.messages),
+        agentOpinions: [],
+        mindmap: snapshot.mindmap || { nodes: [], edges: [] },
+        suggestedQuestions: [],
+        selectedNode: null,
+        error: null,
+        isSending: false
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message,
+        isSending: false
+      }));
+    }
   }
 
   function setMindmapExpanded(expanded) {
@@ -138,6 +307,12 @@ export default function App() {
     event.preventDefault();
     const content = input.trim();
     if (!content || state.isSending) {
+      return;
+    }
+
+    if (sendBlockedReason) {
+      setState((current) => ({ ...current, error: sendBlockedReason }));
+      setIsSettingsOpen(true);
       return;
     }
 
@@ -163,11 +338,12 @@ export default function App() {
         ...current,
         conversationId: response.conversation?.id || current.conversationId,
         messages: [...current.messages, assistantMessage],
-        agentOpinions: response.agentOpinions || [],
+        agentOpinions: [],
         mindmap: response.mindmap || current.mindmap,
         suggestedQuestions: response.suggestedQuestions || [],
         isSending: false
       }));
+      await loadConversations();
     } catch (error) {
       const errorPayload = error.response?.data;
       const errorText = errorPayload?.error?.message || error.message;
@@ -177,12 +353,13 @@ export default function App() {
         ...current,
         conversationId: errorPayload?.conversation?.id || current.conversationId,
         messages: [...current.messages, errorMessage],
-        agentOpinions: errorPayload?.agentOpinions || [],
+        agentOpinions: [],
         mindmap: errorPayload?.mindmap || current.mindmap,
         suggestedQuestions: errorPayload?.suggestedQuestions || [],
         error: errorText,
         isSending: false
       }));
+      await loadConversations();
     }
   }
 
@@ -222,13 +399,14 @@ export default function App() {
         return {
           ...current,
           messages: [...current.messages, assistantMessage],
-          agentOpinions: response.agentOpinions || [],
+          agentOpinions: [],
           mindmap: nextMindmap,
           suggestedQuestions: response.suggestedQuestions || [],
           selectedNode: nextSelectedNode,
           isSending: false
         };
       });
+      await loadConversations();
     } catch (error) {
       const errorPayload = error.response?.data;
       const errorText = errorPayload?.error?.message || error.message;
@@ -237,12 +415,13 @@ export default function App() {
       setState((current) => ({
         ...current,
         messages: [...current.messages, errorMessage],
-        agentOpinions: errorPayload?.agentOpinions || [],
+        agentOpinions: [],
         mindmap: errorPayload?.mindmap || current.mindmap,
         suggestedQuestions: errorPayload?.suggestedQuestions || [],
         error: errorText,
         isSending: false
       }));
+      await loadConversations();
     }
   }
 
@@ -292,6 +471,12 @@ export default function App() {
             isMindmapOpen={isMindmapOpen}
             providerLabel={activeProvider?.label || state.provider}
             model={state.model}
+            conversations={conversations}
+            conversationId={state.conversationId}
+            onNewChat={handleNewChat}
+            onSelectConversation={handleSelectConversation}
+            canSend={canSend}
+            sendBlockedReason={sendBlockedReason}
           />
         </div>
       ) : (
@@ -316,6 +501,8 @@ export default function App() {
         onModelChange={(model) => setState((current) => ({ ...current, model }))}
         onRefresh={loadProviders}
         isRefreshing={isRefreshingProviders}
+        onProviderAuth={handleProviderAuth}
+        isAuthenticating={isAuthenticating}
         onClose={() => setIsSettingsOpen(false)}
       />
     </div>

@@ -1,4 +1,4 @@
-import { Globe2, MessageCircle, Send, Settings } from 'lucide-react';
+import { Globe2, MessageCircle, Plus, Send, Settings } from 'lucide-react';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
 function MessageBubble({ message }) {
@@ -50,7 +50,13 @@ export default function ChatPanel({
   onOpenSettings,
   isMindmapOpen,
   providerLabel,
-  model
+  model,
+  conversations,
+  conversationId,
+  onNewChat,
+  onSelectConversation,
+  canSend,
+  sendBlockedReason
 }) {
   function handleComposerKeyDown(event) {
     if (event.key !== 'Enter' || event.shiftKey) {
@@ -108,6 +114,39 @@ export default function ChatPanel({
         </div>
       </div>
 
+      <div className="flex items-center gap-2 border-b border-cyan-300/10 bg-slate-950/78 px-3 py-2">
+        <select
+          className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-2 text-xs text-slate-200 outline-none transition focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/10"
+          value={conversationId || 'new'}
+          onChange={(event) => {
+            if (event.target.value === 'new') {
+              onNewChat();
+              return;
+            }
+
+            onSelectConversation(event.target.value);
+          }}
+          title="Conversation history"
+          aria-label="Conversation history"
+        >
+          <option value="new">New chat</option>
+          {(conversations || []).map((conversation) => (
+            <option key={conversation.id} value={conversation.id}>
+              {conversation.title}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/18"
+          onClick={onNewChat}
+          title="New chat"
+          aria-label="New chat"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-3">
           {messages.length === 0 ? (
@@ -115,10 +154,15 @@ export default function ChatPanel({
               브레인스토밍할 과제, 아이디어, 기획 주제를 입력하세요.
             </div>
           ) : (
-            messages.map((message) => <MessageBubble key={message.id} message={message} />)
+            messages.map((message) => (
+              <div key={message.id} className="grid gap-2">
+                <MessageBubble message={message} />
+                {message.agentOpinions?.length ? (
+                  <AgentOpinionPanel opinions={message.agentOpinions} />
+                ) : null}
+              </div>
+            ))
           )}
-
-          <AgentOpinionPanel opinions={agentOpinions} />
 
           {isSending ? <ThinkingIndicator /> : null}
 
@@ -147,13 +191,13 @@ export default function ChatPanel({
             value={input}
             onChange={(event) => onInputChange(event.target.value)}
             onKeyDown={handleComposerKeyDown}
-            placeholder="메시지를 입력하세요"
+            placeholder={sendBlockedReason || '메시지를 입력하세요'}
             disabled={isSending}
           />
           <button
             type="submit"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-cyan-500/22 text-cyan-100 ring-1 ring-cyan-300/30 transition hover:bg-cyan-400/24 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 disabled:ring-slate-700"
-            disabled={isSending || !input.trim()}
+            disabled={isSending || !input.trim() || !canSend}
             title="Send"
             aria-label="Send"
           >

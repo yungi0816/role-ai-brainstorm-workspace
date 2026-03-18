@@ -27,8 +27,12 @@ function compactHistory(history) {
 }
 
 function compactMindmap(mindmap) {
+  const nodes = mindmap.nodes || [];
+  const rootNode = nodes.find((node) => !(node.parent_id || node.parentId)) || nodes[0] || null;
+
   return {
-    nodes: (mindmap.nodes || []).map((node) => ({
+    rootNodeId: rootNode?.id || null,
+    nodes: nodes.map((node) => ({
       id: node.id,
       label: node.label,
       type: node.type,
@@ -70,9 +74,19 @@ export function buildBrainstormPrompt({
     currentMindmap: compactMindmap(mindmap),
     selectedNode: compactNodeContext(nodeContext)
   };
+  const lockedTopic = promptContext.currentMindmap.rootNodeId
+    ? promptContext.currentMindmap.nodes.find((node) => node.id === promptContext.currentMindmap.rootNodeId)?.label
+    : promptContext.userMessage;
 
   return `
 You are a role-based AI brainstorming workspace engine.
+
+Critical topic lock:
+- The central topic is exactly: "${lockedTopic || promptContext.userMessage}".
+- The latest user request is: "${promptContext.userMessage}".
+- Do not switch to another domain, industry, product, or example topic.
+- Every chatResponse sentence, agent opinion, mindmap node, and edge must be directly relevant to that central topic.
+- If you are unsure, create a "question" node asking for clarification instead of inventing an unrelated topic.
 
 Process the user's input as a collaborative brainstorming session with these exact Korean roles:
 ${REQUIRED_AGENT_ROLES.map((role) => `- ${role}`).join('\n')}
@@ -86,7 +100,9 @@ Rules:
 6. Keep node ids stable, lowercase, and readable when possible.
 7. Node type must be one of: ${MINDMAP_NODE_TYPES.join(', ')}.
 8. If selectedNode exists, answer the question in the context of that node and update or extend that node when useful.
-9. Write chatResponse, opinions, node labels, descriptions, and suggestedQuestions in Korean.
+9. The first/root node is the central topic. Never create a separate unrelated root. Every new node must connect to the root node or to an existing descendant through parentId and addEdges.
+10. Do not draw random lateral chains. Use a clear hierarchy: central topic -> category -> detail/task/risk/decision/question.
+11. Write chatResponse, opinions, node labels, descriptions, and suggestedQuestions in Korean.
 
 Required JSON shape:
 {

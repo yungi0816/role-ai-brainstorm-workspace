@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getProviderOrThrow, listProviders } from '../services/aiRouterService.js';
+import {
+  configureProvider,
+  getProviderOrThrow,
+  listProviderModels,
+  listProviders
+} from '../services/aiRouterService.js';
 import {
   getOllamaStatus,
   listOllamaModels,
@@ -49,6 +54,22 @@ router.post('/ollama/models/pull', async (req, res, next) => {
     return res.json(await pullOllamaModel(model));
   } catch (error) {
     return next(error);
+  }
+});
+
+router.get('/:providerId/models', async (req, res, next) => {
+  try {
+    res.json(await listProviderModels(req.params.providerId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/:providerId/auth', async (req, res, next) => {
+  try {
+    res.json(await configureProvider(req.params.providerId, req.body));
+  } catch (error) {
+    next(error);
   }
 });
 

@@ -5,9 +5,22 @@ export class CopilotProvider extends BaseProvider {
     super({
       id: 'copilot',
       label: 'GitHub Copilot Provider',
-      status: 'stub',
+      status: 'planned',
       models: ['copilot-chat'],
-      capabilities: ['future-oauth', 'future-sdk', 'json-response']
+      modelOptions: [
+        {
+          id: 'copilot-chat',
+          label: 'Copilot Chat',
+          sizeLabel: 'OAuth/SDK 연동 예정',
+          locality: 'remote'
+        }
+      ],
+      capabilities: ['future-oauth', 'future-sdk', 'json-response'],
+      auth: {
+        type: 'planned_oauth',
+        label: 'GitHub OAuth',
+        helpText: 'GitHub Copilot OAuth/SDK 연동을 붙일 수 있도록 인터페이스만 준비된 상태입니다.'
+      }
     });
   }
 

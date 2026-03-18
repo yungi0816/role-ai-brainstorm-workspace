@@ -54,6 +54,9 @@ export default function OllamaRuntimePanel({ isActive, selectedModel }) {
 
   const status = runtime?.status;
   const recommendedModels = runtime?.recommendedModels || [];
+  const recommendedSizeByModel = new Map(
+    (runtime?.recommendedModelOptions || []).map((item) => [item.id, item.sizeLabel])
+  );
 
   async function handleDownload() {
     if (window.desktopShell?.openExternal) {
@@ -150,7 +153,10 @@ export default function OllamaRuntimePanel({ isActive, selectedModel }) {
                   <div>
                     <div className="text-xs font-semibold text-slate-200">{model}</div>
                     <div className="text-[11px] text-slate-500">
-                      {installed ? 'installed' : 'missing'}{isSelected ? ' / selected' : ''}
+                      {installed ? 'installed' : 'missing'}
+                      {' / '}
+                      {recommendedSizeByModel.get(model) || 'size unknown'}
+                      {isSelected ? ' / selected' : ''}
                     </div>
                   </div>
                   {!installed ? (

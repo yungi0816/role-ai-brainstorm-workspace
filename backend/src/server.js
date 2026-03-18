@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { pathToFileURL } from 'node:url';
 import { getDatabase, initDatabase } from './db/database.js';
 import chatRoutes from './routes/chatRoutes.js';
+import conversationRoutes from './routes/conversationRoutes.js';
 import mindmapRoutes from './routes/mindmapRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
 
@@ -47,6 +48,7 @@ export function createApp() {
   });
 
   app.use('/api/chat', chatRoutes);
+  app.use('/api/conversations', conversationRoutes);
   app.use('/api/providers', providerRoutes);
   app.use('/api/mindmap', mindmapRoutes);
 

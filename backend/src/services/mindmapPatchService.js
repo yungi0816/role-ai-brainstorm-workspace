@@ -72,11 +72,65 @@ function getNodeCount(db, conversationId) {
   `).get(conversationId).count;
 }
 
+function getRootNode(db, conversationId) {
+  return db.prepare(`
+    SELECT *
+    FROM mindmap_nodes
+    WHERE conversation_id = ? AND parent_id IS NULL
+    ORDER BY created_at ASC
+    LIMIT 1
+  `).get(conversationId);
+}
+
 function getPositionForIndex(index) {
   return {
     x: (index % 4) * 240,
     y: Math.floor(index / 4) * 160
   };
+}
+
+export function ensureRootMindmapNode({ conversationId, label, description = '' }) {
+  const db = getDatabase();
+  const existingRoot = getRootNode(db, conversationId);
+  if (existingRoot) {
+    return existingRoot;
+  }
+
+  const root = {
+    id: `topic-${conversationId}`,
+    conversation_id: conversationId,
+    label: asString(label) || '새 브레인스토밍',
+    type: 'idea',
+    parent_id: null,
+    description: asString(description),
+    x: 0,
+    y: 0
+  };
+
+  db.prepare(`
+    INSERT INTO mindmap_nodes (
+      id,
+      conversation_id,
+      label,
+      type,
+      parent_id,
+      description,
+      x,
+      y
+    )
+    VALUES (
+      @id,
+      @conversation_id,
+      @label,
+      @type,
+      @parent_id,
+      @description,
+      @x,
+      @y
+    )
+  `).run(root);
+
+  return getNode(db, root.id);
 }
 
 function applyAddNode(db, conversationId, node, positionIndex, applied) {
@@ -94,12 +148,23 @@ function applyAddNode(db, conversationId, node, positionIndex, applied) {
   }
 
   const position = getPositionForIndex(positionIndex);
+  const rootNode = getRootNode(db, conversationId);
+  let parentId = asNullableString(node.parentId);
+
+  if (
+    rootNode &&
+    id !== rootNode.id &&
+    (!parentId || !nodeExistsInConversation(db, conversationId, parentId))
+  ) {
+    parentId = rootNode.id;
+  }
+
   const payload = {
     id,
     conversation_id: conversationId,
     label,
     type: asNodeType(node.type),
-    parent_id: asNullableString(node.parentId),
+    parent_id: parentId,
     description: asString(node.description),
     x: asNumber(node.x, position.x),
     y: asNumber(node.y, position.y)
@@ -154,12 +219,23 @@ function applyUpdateNode(db, conversationId, node, applied) {
   }
 
   const existing = getNode(db, id);
+  const rootNode = getRootNode(db, conversationId);
+  let parentId = node.parentId === undefined ? existing.parent_id : asNullableString(node.parentId);
+
+  if (
+    rootNode &&
+    id !== rootNode.id &&
+    (!parentId || !nodeExistsInConversation(db, conversationId, parentId))
+  ) {
+    parentId = rootNode.id;
+  }
+
   const payload = {
     id,
     conversation_id: conversationId,
     label: asString(node.label) || existing.label,
     type: node.type ? asNodeType(node.type) : existing.type,
-    parent_id: node.parentId === undefined ? existing.parent_id : asNullableString(node.parentId),
+    parent_id: parentId,
     description: node.description === undefined ? existing.description : asString(node.description),
     x: node.x === undefined ? existing.x : asNumber(node.x, existing.x),
     y: node.y === undefined ? existing.y : asNumber(node.y, existing.y)
@@ -177,6 +253,50 @@ function applyUpdateNode(db, conversationId, node, applied) {
     WHERE conversation_id = @conversation_id AND id = @id
   `).run(payload);
   applied.updatedNodes += 1;
+}
+
+function edgePairExists(db, conversationId, source, target) {
+  return Boolean(
+    db.prepare(`
+      SELECT 1
+      FROM mindmap_edges
+      WHERE conversation_id = ? AND source = ? AND target = ?
+    `).get(conversationId, source, target)
+  );
+}
+
+function ensureParentEdges(db, conversationId) {
+  const nodes = db.prepare(`
+    SELECT id, parent_id
+    FROM mindmap_nodes
+    WHERE conversation_id = ? AND parent_id IS NOT NULL
+    ORDER BY created_at ASC
+  `).all(conversationId);
+  const insertEdge = db.prepare(`
+    INSERT INTO mindmap_edges (id, conversation_id, source, target, label)
+    VALUES (@id, @conversation_id, @source, @target, @label)
+  `);
+  let inserted = 0;
+
+  for (const node of nodes) {
+    if (
+      !nodeExistsInConversation(db, conversationId, node.parent_id) ||
+      edgePairExists(db, conversationId, node.parent_id, node.id)
+    ) {
+      continue;
+    }
+
+    insertEdge.run({
+      id: `edge-${conversationId}-${node.parent_id}-${node.id}`,
+      conversation_id: conversationId,
+      source: node.parent_id,
+      target: node.id,
+      label: '연결'
+    });
+    inserted += 1;
+  }
+
+  return inserted;
 }
 
 function applyAddEdge(db, conversationId, edge, applied) {
@@ -317,6 +437,8 @@ export function applyMindmapPatch({ conversationId, patch }) {
     for (const edge of normalizedPatch.updateEdges || []) {
       applyUpdateEdge(db, conversationId, edge, applied);
     }
+
+    applied.addedEdges += ensureParentEdges(db, conversationId);
 
     db.prepare(`
       UPDATE conversations

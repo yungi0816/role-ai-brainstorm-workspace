@@ -27,7 +27,15 @@ export class ProviderError extends Error {
 }
 
 export class BaseProvider {
-  constructor({ id, label, status = 'not_implemented', models = [], capabilities = [] }) {
+  constructor({
+    id,
+    label,
+    status = 'not_implemented',
+    models = [],
+    modelOptions = null,
+    capabilities = [],
+    auth = null
+  }) {
     if (!id || !label) {
       throw new Error('Provider id and label are required.');
     }
@@ -36,17 +44,24 @@ export class BaseProvider {
     this.label = label;
     this.status = status;
     this.models = models;
+    this.modelOptions = modelOptions || models.map((model) => ({ id: model, label: model }));
     this.capabilities = capabilities;
+    this.auth = auth;
   }
 
   getMetadata() {
+    const modelOptions = this.getModelOptions();
+
     return {
       id: this.id,
       label: this.label,
       status: this.getStatus(),
       configured: this.isConfigured(),
-      models: this.models,
-      capabilities: this.capabilities
+      ready: this.isReady(),
+      models: modelOptions.map((model) => model.id),
+      modelOptions,
+      capabilities: this.capabilities,
+      auth: this.getAuthMetadata()
     };
   }
 
@@ -54,12 +69,29 @@ export class BaseProvider {
     return this.status;
   }
 
+  isReady() {
+    return this.isConfigured() && this.getStatus() === 'ready';
+  }
+
   isConfigured() {
     return true;
   }
 
+  getModelOptions() {
+    return this.modelOptions;
+  }
+
+  async listModelOptions() {
+    return this.getModelOptions();
+  }
+
+  getAuthMetadata() {
+    return this.auth;
+  }
+
   supportsModel(model) {
-    return this.models.length === 0 || this.models.includes(model);
+    const modelIds = this.getModelOptions().map((item) => item.id);
+    return modelIds.length === 0 || modelIds.includes(model);
   }
 
   validateModel(model) {
@@ -86,8 +118,19 @@ export class BaseProvider {
   assertUsable({ model } = {}) {
     this.validateModel(model);
 
+    if (this.getStatus() === 'planned') {
+      throw new ProviderError(`Provider "${this.id}" is planned but not available yet. Use another provider until OAuth/SDK integration is implemented.`, {
+        code: 'PROVIDER_PLANNED_ONLY',
+        statusCode: 501,
+        providerId: this.id,
+        details: {
+          status: this.getStatus()
+        }
+      });
+    }
+
     if (!this.isConfigured()) {
-      throw new ProviderError(`Provider "${this.id}" is not configured.`, {
+      throw new ProviderError(`Provider "${this.id}" requires authentication. Configure it in Settings before sending a message.`, {
         code: 'PROVIDER_NOT_CONFIGURED',
         statusCode: 503,
         providerId: this.id
@@ -133,6 +176,14 @@ export class BaseProvider {
   async generateBrainstormResponse() {
     throw new ProviderError(`Provider "${this.id}" has not implemented generation.`, {
       code: 'PROVIDER_GENERATION_NOT_IMPLEMENTED',
+      statusCode: 501,
+      providerId: this.id
+    });
+  }
+
+  async configureCredentials() {
+    throw new ProviderError(`Provider "${this.id}" does not support credential configuration in this build.`, {
+      code: 'PROVIDER_AUTH_NOT_SUPPORTED',
       statusCode: 501,
       providerId: this.id
     });

@@ -130,6 +130,48 @@ export function listAgentOpinions(messageId) {
     .all(messageId);
 }
 
+export function listAgentOpinionsForConversation(conversationId) {
+  return getDatabase()
+    .prepare(`
+      SELECT ao.*
+      FROM agent_opinions ao
+      JOIN messages m ON m.id = ao.message_id
+      WHERE m.conversation_id = ?
+      ORDER BY ao.created_at ASC
+    `)
+    .all(conversationId);
+}
+
+export function getConversationSnapshot(conversationId) {
+  const conversation = getConversation(conversationId);
+  if (!conversation) {
+    return null;
+  }
+
+  const opinionsByMessageId = new Map();
+  for (const opinion of listAgentOpinionsForConversation(conversationId)) {
+    const items = opinionsByMessageId.get(opinion.message_id) || [];
+    items.push({
+      id: opinion.id,
+      role: opinion.agent_role,
+      opinion: opinion.opinion,
+      created_at: opinion.created_at
+    });
+    opinionsByMessageId.set(opinion.message_id, items);
+  }
+
+  const messages = listMessages(conversationId).map((message) => ({
+    ...message,
+    agentOpinions: opinionsByMessageId.get(message.id) || []
+  }));
+
+  return {
+    conversation,
+    messages,
+    mindmap: getMindmap(conversationId)
+  };
+}
+
 export function listConversations() {
   return getDatabase()
     .prepare(`
