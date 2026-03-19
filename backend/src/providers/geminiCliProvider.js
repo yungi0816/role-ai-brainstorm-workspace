@@ -7,25 +7,37 @@ const GEMINI_CLI_MODEL_OPTIONS = [
   {
     id: DEFAULT_GEMINI_CLI_MODEL,
     label: 'Gemini CLI Default',
-    sizeLabel: 'Cloud / CLI 계정',
+    sizeLabel: 'Cloud / CLI account',
+    locality: 'remote'
+  },
+  {
+    id: 'gemini-3.1-pro-preview',
+    label: 'Gemini 3.1 Pro Preview',
+    sizeLabel: 'Cloud / CLI account access',
+    locality: 'remote'
+  },
+  {
+    id: 'gemini-3.1-pro-preview-customtools',
+    label: 'Gemini 3.1 Pro Preview Custom Tools',
+    sizeLabel: 'Cloud / CLI account access',
     locality: 'remote'
   },
   {
     id: 'gemini-2.5-flash',
     label: 'Gemini 2.5 Flash',
-    sizeLabel: 'Cloud / CLI 계정',
+    sizeLabel: 'Cloud / CLI account',
     locality: 'remote'
   },
   {
     id: 'gemini-2.5-pro',
     label: 'Gemini 2.5 Pro',
-    sizeLabel: 'Cloud / CLI 계정',
+    sizeLabel: 'Cloud / CLI account',
     locality: 'remote'
   },
   {
     id: 'gemini-2.0-flash',
     label: 'Gemini 2.0 Flash',
-    sizeLabel: 'Cloud / CLI 계정',
+    sizeLabel: 'Cloud / CLI account',
     locality: 'remote'
   }
 ];
