@@ -74,7 +74,6 @@ BEGIN
   SET updated_at = datetime('now')
   WHERE id = OLD.id;
 END;
-
 CREATE TRIGGER IF NOT EXISTS trg_mindmap_nodes_updated_at
 AFTER UPDATE ON mindmap_nodes
 FOR EACH ROW

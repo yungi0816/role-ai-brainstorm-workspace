@@ -32,6 +32,11 @@ export async function fetchConversation(conversationId) {
   return data;
 }
 
+export async function deleteConversation(conversationId) {
+  const { data } = await api.delete(`/conversations/${conversationId}`);
+  return data;
+}
+
 export async function fetchOllamaStatus() {
   const { data } = await api.get('/providers/ollama/status');
   return data;

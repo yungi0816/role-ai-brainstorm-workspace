@@ -52,30 +52,6 @@ select {
   -webkit-app-region: no-drag;
 }
 
-.mindmap-orbit-surface::before,
-.mindmap-orbit-surface::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 88vmin;
-  height: 88vmin;
-  border: 1px solid rgba(34, 211, 238, 0.17);
-  border-radius: 9999px;
-  pointer-events: none;
-  transform: translate(-50%, -50%) rotateX(64deg) rotateZ(0deg);
-  transform-origin: center;
-  animation: orbit-spin 24s linear infinite;
-}
-
-.mindmap-orbit-surface::after {
-  width: 68vmin;
-  height: 68vmin;
-  border-color: rgba(129, 140, 248, 0.16);
-  animation-direction: reverse;
-  animation-duration: 18s;
-}
-
 .mindmap-flow {
   position: relative;
   z-index: 1;
@@ -187,35 +163,43 @@ select {
 
 .mindmap-flow .react-flow__controls {
   overflow: hidden;
-  border: 1px solid rgba(34, 211, 238, 0.2);
+  border: 1px solid rgba(34, 211, 238, 0.4);
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.94);
-  box-shadow: 0 14px 30px rgba(8, 47, 73, 0.28);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  margin: 12px;
 }
 
 .mindmap-flow .react-flow__controls-button {
-  width: 34px;
-  height: 34px;
-  border-bottom: 1px solid rgba(34, 211, 238, 0.13);
-  background: rgba(15, 23, 42, 0.94);
-  color: #dbeafe;
-  fill: #dbeafe;
+  width: 36px;
+  height: 36px;
+  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+  background: transparent;
+  color: #22d3ee;
+  fill: #22d3ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .mindmap-flow .react-flow__controls-button:hover {
-  background: rgba(8, 145, 178, 0.22);
+  background: rgba(34, 211, 238, 0.15);
+  color: #67e8f9;
 }
 
 .mindmap-flow .react-flow__controls-button svg {
-  max-width: 16px;
-  max-height: 16px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
 }
 
 .mindmap-flow .react-flow__minimap {
   overflow: hidden;
-  border: 1px solid rgba(34, 211, 238, 0.2);
+  border: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 8px;
-  box-shadow: 0 14px 30px rgba(8, 47, 73, 0.28);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+  margin: 12px;
 }
 
 .mindmap-flow .react-flow__minimap-mask {
@@ -265,4 +249,56 @@ select {
   to {
     transform: translateX(250%);
   }
+}
+
+/* Markdown Rendering Styles */
+.markdown-body {
+  word-break: break-word;
+}
+
+.markdown-body p {
+  margin-bottom: 0.75em;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body strong,
+.markdown-body b {
+  font-weight: 600;
+  color: #38bdf8; /* 강조색 적용 */
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-body h3 {
+  font-size: 1.1em;
 }

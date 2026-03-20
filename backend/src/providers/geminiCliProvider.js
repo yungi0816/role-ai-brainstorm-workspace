@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { BaseProvider, ProviderError } from './baseProvider.js';
 
-const STDIN_TASK_PROMPT = 'Use the stdin content as the complete task. Return only the final answer.';
 const DEFAULT_GEMINI_CLI_MODEL = 'gemini-cli-default';
 const GEMINI_CLI_MODEL_OPTIONS = [
   {
@@ -70,42 +73,76 @@ export class GeminiCliProvider extends BaseProvider {
       status: 'ready',
       models: GEMINI_CLI_MODEL_OPTIONS.map((model) => model.id),
       modelOptions: GEMINI_CLI_MODEL_OPTIONS,
-      capabilities: ['child-process', 'json-response']
+      capabilities: ['child-process', 'json-response'],
+      auth: {
+        type: 'oauth_cli',
+        label: 'Google Account (CLI)',
+        helpText: 'Gemini CLI가 아직 인증되지 않았습니다. 아래 버튼을 눌러 터미널 로그인(브라우저 인증)을 진행하세요.'
+      }
     });
+
+    this._isAuthorized = true; // 기본값은 true로 설정하여 차단 방지
+    this._lastCheckTime = 0;
+
+    // 초기 인증 체크 (비동기)
+    this._checkAuthBackground();
+  }
+
+  getStatus() {
+    // 마지막 체크 후 1분이 지났으면 백그라운드에서 다시 체크 시작
+    if (Date.now() - this._lastCheckTime > 60000) {
+      this._checkAuthBackground();
+    }
+    return this._isAuthorized ? 'ready' : 'needs_auth';
+  }
+
+  async _checkAuthBackground() {
+    this._lastCheckTime = Date.now();
+    try {
+      // 아주 짧은 실행으로 인증 확인
+      await this.runCli('hi', { timeoutMs: 3000 });
+      this._isAuthorized = true;
+    } catch (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('auth') || msg.includes('login') || msg.includes('401') || msg.includes('key')) {
+        this._isAuthorized = false;
+      }
+      // 기타 실행 오류(명령어 없음 등)는 기존 로직 유지
+    }
   }
 
   isConfigured() {
-    return Boolean(process.env.GEMINI_CLI_COMMAND || 'gemini');
+    return true;
+  }
+
+  getExecutable() {
+    const command = process.env.GEMINI_CLI_COMMAND || 'gemini';
+    if (process.platform === 'win32' && command === 'gemini') {
+      return 'gemini.cmd';
+    }
+    return command;
+  }
+
+  async configureCredentials() {
+    const command = this.getExecutable();
+    const args = ['--skip-trust'];
+    // 비동기로 프로세스 실행 (브라우저 열기 전용)
+    spawn(command, args, { shell: process.platform === 'win32', windowsHide: true, stdio: 'ignore' }).unref();
+
+    // 상태 강제 갱신 트리거
+    setTimeout(() => this._checkAuthBackground(), 5000);
+
+    return {
+      ...this.getMetadata(),
+      note: '브라우저에서 로그인을 완료한 후 "Refresh" 버튼을 눌러주세요.'
+    };
   }
 
   buildCommand(model = DEFAULT_GEMINI_CLI_MODEL) {
-    const command = process.env.GEMINI_CLI_COMMAND || 'gemini';
+    const command = this.getExecutable();
     const modelArgs = model && model !== DEFAULT_GEMINI_CLI_MODEL
       ? ['--model', model]
       : [];
-
-    if (process.platform === 'win32') {
-      const modelCommand = modelArgs.length
-        ? ` --model ${quotePowerShellValue(model)}`
-        : '';
-
-      return {
-        command: 'powershell.exe',
-        args: [
-          '-NoProfile',
-          '-NonInteractive',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-Command',
-          `$input | & ${quotePowerShellValue(command)} --skip-trust${modelCommand} --prompt ${quotePowerShellValue(STDIN_TASK_PROMPT)}`
-        ],
-        options: {
-          shell: false,
-          windowsHide: true,
-          stdio: ['pipe', 'pipe', 'pipe']
-        }
-      };
-    }
 
     return {
       command,
@@ -113,10 +150,10 @@ export class GeminiCliProvider extends BaseProvider {
         '--skip-trust',
         ...modelArgs,
         '--prompt',
-        STDIN_TASK_PROMPT
+        'headless'
       ],
       options: {
-        shell: false,
+        shell: process.platform === 'win32',
         windowsHide: true,
         stdio: ['pipe', 'pipe', 'pipe']
       }
@@ -151,6 +188,7 @@ export class GeminiCliProvider extends BaseProvider {
         }));
       }, timeoutMs);
 
+      // STDIN으로 프롬프트를 직접 주입
       child.stdin.on('error', () => {
         // The close handler reports the actionable process failure.
       });

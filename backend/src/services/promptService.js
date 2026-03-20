@@ -74,76 +74,51 @@ export function buildBrainstormPrompt({
     currentMindmap: compactMindmap(mindmap),
     selectedNode: compactNodeContext(nodeContext)
   };
-  const lockedTopic = promptContext.currentMindmap.rootNodeId
-    ? promptContext.currentMindmap.nodes.find((node) => node.id === promptContext.currentMindmap.rootNodeId)?.label
-    : promptContext.userMessage;
+  const rootNode = promptContext.currentMindmap.nodes.find((n) => n.id === promptContext.currentMindmap.rootNodeId);
+  const currentTopic = rootNode?.label || promptContext.userMessage;
 
   return `
-You are a role-based AI brainstorming workspace engine.
+당신은 사용자의 질문에 대해 즉시 실무적이고 날카로운 통찰을 제공하는 1인칭 전문 컨설턴트입니다.
+**경고: 사용자의 질문 주제에서 단 1%도 벗어나지 마십시오.**
+현재 질문 주제: "${promptContext.userMessage}"
 
-Critical topic lock:
-- The central topic is exactly: "${lockedTopic || promptContext.userMessage}".
-- The latest user request is: "${promptContext.userMessage}".
-- Do not switch to another domain, industry, product, or example topic.
-- Every chatResponse sentence, agent opinion, mindmap node, and edge must be directly relevant to that central topic.
-- If you are unsure, create a "question" node asking for clarification instead of inventing an unrelated topic.
+이 주제에 대해 다음 4개 항목을 반드시 포함하여 당신의 확고한 견해를 답변하십시오. 추상적인 단어([현황], [문제] 등)로 답변을 채우지 말고, 구체적인 사실과 통찰을 적으십시오.
 
-Process the user's input as a collaborative brainstorming session with these exact Korean roles:
-${REQUIRED_AGENT_ROLES.map((role) => `- ${role}`).join('\n')}
+[chatResponse 필수 구성 요소 - 반드시 이 순서로 실제 내용을 적으세요]
+1. [견해]: "${promptContext.userMessage}"에 대한 당신의 주관적이고 확고한 전문가적 평가
+2. [한계]: 현재 이 분야나 시스템이 가진 치명적인 실무적 한계와 문제점
+3. [발전]: 향후 어떤 기술이나 정책이 도입되어야 혁신적인 발전이 가능할지에 대한 구체적 제언
+4. [선호도]: 실제 현장 실무자들이 가장 목말라하는 기능이나 실질적인 요구사항
 
-Rules:
-1. Return JSON only. Do not wrap it in markdown. Do not add commentary outside JSON.
-2. Always generate one opinion for every required role.
-3. Always generate a mindmapPatch object, even if every patch array is empty.
-4. Use the existing mind map to avoid duplicate nodes. Prefer updateNodes when a concept already exists.
-5. Use patch updates only. Do not regenerate the whole mind map.
-6. Keep node ids stable, lowercase, and readable when possible.
-7. Node type must be one of: ${MINDMAP_NODE_TYPES.join(', ')}.
-8. If selectedNode exists, answer the question in the context of that node and update or extend that node when useful.
-9. The first/root node is the central topic. Never create a separate unrelated root. Every new node must connect to the root node or to an existing descendant through parentId and addEdges.
-10. Do not draw random lateral chains. Use a clear hierarchy: central topic -> category -> detail/task/risk/decision/question.
-11. Write chatResponse, opinions, node labels, descriptions, and suggestedQuestions in Korean.
+수행 규칙:
+- "분석을 시작합니다" 같은 서론은 절대 하지 마세요. 바로 본론으로 들어갑니다.
+- agentOpinions 배열에는 반드시 5명의 전문가(아이디어 뱅크, 비판가, 검토자, 구현 설계자, 정리자)의 의견을 각각 구체적으로 포함하세요. 의견이 누락되지 않도록 주의하십시오.
+- **가독성 극대화**: 모든 답변(chatResponse 및 opinion)에는 마크다운(Markdown) 문법을 적극적으로 사용하십시오. 핵심 키워드는 **굵은 글씨('**텍스트**')**로 강조하고, 여러 항목을 나열할 때는 **불릿 리스트('- 항목')**를 사용하며, 내용이 전환될 때는 **줄바꿈('\\n\\n')**으로 문단을 명확히 나누십시오.
+- 반드시 순수한 JSON 객체만 반환하세요.
+- 모든 답변은 한국어로 작성하세요.
 
-Required JSON shape:
+필수 JSON 구조:
 {
-  "chatResponse": "채팅창에 표시할 답변",
+  "chatResponse": "**[견해]**: 나는 이 주제에 대해 **...**라고 생각합니다.\\n\\n**[한계]**: 현재는 다음과 같은 부분이 부족합니다.\\n- 한계점 1\\n- 한계점 2\\n\\n**[발전]**: 앞으로 **...방향**으로 가야 합니다.\\n\\n**[선호도]**: 실제 사용자들은 ...를 훨씬 선호할 것입니다.",
   "agentOpinions": [
-    { "role": "아이디어 뱅크", "opinion": "새로운 아이디어 제안" },
-    { "role": "비판가", "opinion": "위험 요소와 한계 지적" },
-    { "role": "검토자", "opinion": "현실성 및 우선순위 검토" },
-    { "role": "구현 설계자", "opinion": "DB/API/UI 구현 관점 정리" },
-    { "role": "정리자", "opinion": "최종 결론 요약" }
+    { "role": "아이디어 뱅크", "opinion": "구체적 제안은 다음과 같습니다:\\n\\n- **제안 1**: 설명...\\n- **제안 2**: 설명..." },
+    { "role": "비판가", "opinion": "**가장 큰 리스크**는 ...입니다.\\n\\n- **비판 1**: 설명...\\n- **비판 2**: 설명..." },
+    { "role": "검토자", "opinion": "정책적 검토 내용..." },
+    { "role": "구현 설계자", "opinion": "기술적 구현 방안..." },
+    { "role": "정리자", "opinion": "핵심 요약 및 실행 로드맵..." }
   ],
   "mindmapPatch": {
     "addNodes": [
-      {
-        "id": "unique-node-id",
-        "label": "노드명",
-        "type": "idea | risk | feature | task | decision | question",
-        "parentId": "parent-node-id or null",
-        "description": "노드 설명"
-      }
+      { "id": "insight-1", "label": "실무 핵심 통찰", "type": "idea", "parentId": "${promptContext.currentMindmap.rootNodeId}" }
     ],
-    "updateNodes": [],
-    "removeNodes": [],
-    "addEdges": [
-      {
-        "id": "edge-id",
-        "source": "parent-node-id",
-        "target": "child-node-id",
-        "label": "관계"
-      }
-    ],
-    "updateEdges": [],
-    "removeEdges": []
+    "updateNodes": [
+      { "id": "${promptContext.currentMindmap.rootNodeId}", "label": "${currentTopic}" }
+    ]
   },
-  "suggestedQuestions": [
-    "이 기능을 MVP로 줄이면?",
-    "DB 설계는 어떻게 하면 좋을까?"
-  ]
+  "suggestedQuestions": ["실제 현장 실무자의 가장 큰 불만은?", "이 시스템의 법적 신뢰성을 높일 방법은?"]
 }
 
-Context:
+현재 컨텍스트 데이터:
 ${JSON.stringify(promptContext, null, 2)}
 `.trim();
 }

@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 const ROLE_TONE = {
   '아이디어 뱅크': 'border-cyan-300/20 bg-cyan-500/10',
   '비판가': 'border-rose-300/20 bg-rose-500/10',
@@ -18,8 +20,10 @@ export default function AgentOpinionPanel({ opinions }) {
           key={`${item.role}-${item.opinion}`}
           className={`rounded-md border p-3 ${ROLE_TONE[item.role] || 'border-slate-700 bg-slate-900/70'}`}
         >
-          <div className="mb-1 text-xs font-semibold text-slate-200">{item.role}</div>
-          <p className="text-sm leading-6 text-slate-300">{item.opinion}</p>
+          <div className="mb-2 text-xs font-semibold text-slate-200">{item.role}</div>
+          <div className="text-sm leading-6 text-slate-300 markdown-body">
+            <ReactMarkdown>{item.opinion}</ReactMarkdown>
+          </div>
         </article>
       ))}
     </div>

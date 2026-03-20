@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   createConversation,
   getConversationSnapshot,
-  listConversations
+  listConversations,
+  deleteConversation
 } from '../services/conversationService.js';
 
 const router = Router();
@@ -35,6 +36,20 @@ router.get('/:conversationId', (req, res) => {
   }
 
   return res.json(snapshot);
+});
+
+router.delete('/:conversationId', (req, res) => {
+  try {
+    deleteConversation(req.params.conversationId);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({
+      error: {
+        code: 'DELETE_FAILED',
+        message: error.message
+      }
+    });
+  }
 });
 
 export default router;

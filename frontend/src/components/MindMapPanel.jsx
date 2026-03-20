@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,7 +16,8 @@ import {
   MiniMap,
   Position,
   ReactFlow,
-  ReactFlowProvider
+  ReactFlowProvider,
+  useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -140,76 +141,92 @@ function createGraph(sourceNodes, sourceEdges) {
   };
 }
 
-function computeTreeLayout(sourceNodes, links, rootId) {
+/**
+ * 중앙 셀 기반 4방향 확산 레이아웃 계산 함수
+ * 중앙의 큰 셀을 중심으로 자식 노드들을 상하좌우로 배치합니다.
+ */
+function computeSpreadingLayout(sourceNodes, links, rootId) {
   const childrenById = new Map(sourceNodes.map((node) => [node.id, []]));
-  const nodeById = new Map(sourceNodes.map((node, index) => [node.id, { node, index }]));
-
   for (const link of links) {
-    if (!childrenById.has(link.source) || !nodeById.has(link.target)) {
-      continue;
+    if (childrenById.has(link.source)) {
+      childrenById.get(link.source).push(link.target);
     }
-
-    childrenById.get(link.source).push(link.target);
-  }
-
-  for (const children of childrenById.values()) {
-    children.sort((a, b) => nodeById.get(a).index - nodeById.get(b).index);
   }
 
   const positions = new Map();
   const visited = new Set();
-  let nextLeaf = 0;
-  const depthGap = 290;
-  const verticalGap = 132;
 
-  function placeNode(id, depth, stack = new Set()) {
-    if (stack.has(id)) {
-      return nextLeaf * verticalGap;
-    }
+  const horizGap = 360;
+  const vertGap = 160;
 
-    if (visited.has(id)) {
-      return positions.get(id)?.y || 0;
-    }
-
+  function placeNodesRecursive(id, x, y, direction) {
+    if (visited.has(id)) return;
     visited.add(id);
-    const nextStack = new Set(stack);
-    nextStack.add(id);
 
-    const childIds = (childrenById.get(id) || []).filter((childId) => !stack.has(childId));
-    let y;
+    positions.set(id, { x, y });
 
-    if (childIds.length === 0) {
-      y = nextLeaf * verticalGap;
-      nextLeaf += 1;
+    const children = childrenById.get(id) || [];
+    if (children.length === 0) return;
+
+    if (direction === 'left' || direction === 'right') {
+      const totalHeight = (children.length - 1) * vertGap;
+      let startY = y - totalHeight / 2;
+
+      children.forEach((childId, index) => {
+        const nextX = x + (direction === 'left' ? -horizGap : horizGap);
+        const nextY = startY + index * vertGap;
+        placeNodesRecursive(childId, nextX, nextY, direction);
+      });
     } else {
-      const childYs = childIds.map((childId) => placeNode(childId, depth + 1, nextStack));
-      y = childYs.reduce((sum, childY) => sum + childY, 0) / childYs.length;
+      const totalWidth = (children.length - 1) * horizGap;
+      let startX = x - totalWidth / 2;
+
+      children.forEach((childId, index) => {
+        const nextX = startX + index * horizGap;
+        const nextY = y + (direction === 'top' ? -vertGap : vertGap);
+        placeNodesRecursive(childId, nextX, nextY, direction);
+      });
     }
-
-    positions.set(id, {
-      x: depth * depthGap,
-      y
-    });
-
-    return y;
   }
 
   if (rootId) {
-    placeNode(rootId, 0);
-  }
+    visited.add(rootId);
+    positions.set(rootId, { x: 0, y: 0 });
 
-  for (const node of sourceNodes) {
-    if (!visited.has(node.id)) {
-      placeNode(node.id, 1);
+    const children = childrenById.get(rootId) || [];
+    if (children.length > 0) {
+      const rightChildren = [];
+      const leftChildren = [];
+      const bottomChildren = [];
+      const topChildren = [];
+
+      children.forEach((id, i) => {
+        if (i % 4 === 0) rightChildren.push(id);
+        else if (i % 4 === 1) leftChildren.push(id);
+        else if (i % 4 === 2) bottomChildren.push(id);
+        else topChildren.push(id);
+      });
+
+      const rH = (rightChildren.length - 1) * vertGap;
+      rightChildren.forEach((id, i) => placeNodesRecursive(id, horizGap, -rH/2 + i * vertGap, 'right'));
+
+      const lH = (leftChildren.length - 1) * vertGap;
+      leftChildren.forEach((id, i) => placeNodesRecursive(id, -horizGap, -lH/2 + i * vertGap, 'left'));
+
+      const bW = (bottomChildren.length - 1) * horizGap;
+      bottomChildren.forEach((id, i) => placeNodesRecursive(id, -bW/2 + i * horizGap, vertGap, 'bottom'));
+
+      const tW = (topChildren.length - 1) * horizGap;
+      topChildren.forEach((id, i) => placeNodesRecursive(id, -tW/2 + i * horizGap, -vertGap, 'top'));
     }
   }
 
-  const rootY = positions.get(rootId)?.y || 0;
-  for (const [id, position] of positions) {
-    positions.set(id, {
-      x: position.x,
-      y: position.y - rootY
-    });
+  let orphanIdx = 0;
+  for (const node of sourceNodes) {
+    if (!visited.has(node.id)) {
+      positions.set(node.id, { x: 0, y: (orphanIdx + 2) * vertGap });
+      orphanIdx++;
+    }
   }
 
   return positions;
@@ -229,18 +246,30 @@ function MindMapNode({ data, selected }) {
       style={{
         '--node-border': tone.border,
         '--node-bg': tone.background,
-        '--node-icon-bg': tone.iconBackground
+        '--node-icon-bg': tone.iconBackground,
+        minWidth: data.isRoot ? '260px' : '180px',
+        padding: '16px'
       }}
     >
-      <Handle className="mindmap-handle" type="target" position={Position.Left} />
-      <Handle className="mindmap-handle" type="source" position={Position.Right} />
-      <div className="mindmap-node-card-header">
+      <Handle type="target" position={Position.Left} id="left" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Right} id="right" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} id="top" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
+
+      <Handle type="source" position={Position.Left} id="left" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Top} id="top" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
+
+      <div className="mindmap-node-card-header" style={{ marginBottom: '8px' }}>
         <span className="mindmap-node-icon">
-          <Icon size={data.isRoot ? 22 : 16} />
+          <Icon size={data.isRoot ? 24 : 16} />
         </span>
         <span className="mindmap-node-type">{TYPE_LABEL[data.raw.type] || data.raw.type}</span>
       </div>
-      <div className="mindmap-node-label">{data.label}</div>
+      <div className="mindmap-node-label" style={{ wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
+        {data.label}
+      </div>
       {data.isRoot && data.raw.description ? (
         <div className="mindmap-node-description">{data.raw.description}</div>
       ) : null}
@@ -267,8 +296,8 @@ function MiniMapNode({ x, y, width, height, color }) {
 function toFlowNode(node, position, selectedNode, rootId) {
   const isSelected = selectedNode?.id === node.id;
   const isRoot = node.id === rootId;
-  const width = isRoot ? 260 : 174;
-  const height = isRoot ? 138 : 74;
+  const width = isRoot ? 260 : 180;
+  const height = isRoot ? 140 : 80;
 
   return {
     id: node.id,
@@ -281,43 +310,59 @@ function toFlowNode(node, position, selectedNode, rootId) {
       raw: node,
       isRoot
     },
-    selected: isSelected,
-    style: {
-      width,
-      height
-    }
+    selected: isSelected
   };
 }
 
-function toFlowEdge(edge) {
+function toFlowEdge(edge, positions) {
   const isVisual = Boolean(edge.visual);
+  const sourcePos = positions.get(edge.source);
+  const targetPos = positions.get(edge.target);
+
+  let sourceHandle = 'right';
+  let targetHandle = 'left';
+
+  if (sourcePos && targetPos) {
+    const dx = targetPos.x - sourcePos.x;
+    const dy = targetPos.y - sourcePos.y;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) {
+        sourceHandle = 'right';
+        targetHandle = 'left';
+      } else {
+        sourceHandle = 'left';
+        targetHandle = 'right';
+      }
+    } else {
+      if (dy > 0) {
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
+      } else {
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
+      }
+    }
+  }
 
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    label: isVisual ? undefined : edge.label || undefined,
-    type: 'smoothstep',
+    sourceHandle,
+    targetHandle,
+    type: 'bezier',
     animated: !isVisual,
     style: {
       stroke: isVisual ? '#475569' : '#0e7490',
-      strokeWidth: isVisual ? 1.5 : 2,
-      strokeDasharray: isVisual ? '5 8' : undefined,
-      filter: isVisual ? undefined : 'drop-shadow(0 0 7px rgba(14, 116, 144, 0.34))'
-    },
-    labelStyle: {
-      fill: '#cbd5e1',
-      fontSize: 11,
-      fontWeight: 600
-    },
-    labelBgStyle: {
-      fill: '#020617',
-      fillOpacity: 0.76
+      strokeWidth: 2,
+      strokeDasharray: isVisual ? '5 8' : undefined
     }
   };
 }
 
 function SelectedNodePanel({ node, onAskQuestion, isSending }) {
+// ... 그대로 유지
   const [question, setQuestion] = useState('');
 
   if (!node) {
@@ -355,19 +400,11 @@ function SelectedNodePanel({ node, onAskQuestion, isSending }) {
           <div className="truncate text-sm font-semibold text-slate-50">{node.label}</div>
           <div className="mt-1 text-xs text-slate-400">{TYPE_LABEL[node.type] || node.type}</div>
         </div>
-        {node.parent_id || node.parentId ? (
-          <span className="shrink-0 rounded border border-cyan-300/10 bg-slate-900 px-2 py-1 text-[11px] text-slate-400">
-            child
-          </span>
-        ) : null}
       </div>
       <p className="line-clamp-3 text-xs leading-5 text-slate-400">
         {node.description || 'No description.'}
       </p>
       <form className="mt-3 grid gap-2" onSubmit={handleSubmit}>
-        <label className="text-xs font-semibold text-slate-300" htmlFor="node-question">
-          이 노드에 대해 질문하기
-        </label>
         <div className="flex gap-2">
           <textarea
             id="node-question"
@@ -376,21 +413,52 @@ function SelectedNodePanel({ node, onAskQuestion, isSending }) {
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={handleQuestionKeyDown}
-            placeholder="예: 이 노드를 더 구체화해줘"
+            placeholder="이 노드에 대해 질문하기..."
             disabled={isSending}
           />
           <button
             type="submit"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-cyan-500/22 text-cyan-100 ring-1 ring-cyan-300/30 transition hover:bg-cyan-400/24 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 disabled:ring-slate-700"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-cyan-500/22 text-cyan-100 ring-1 ring-cyan-300/30 transition hover:bg-cyan-400/24 disabled:cursor-not-allowed"
             disabled={isSending || !question.trim()}
-            title="Ask about selected node"
-            aria-label="Ask about selected node"
           >
             <Send size={16} />
           </button>
         </div>
       </form>
     </div>
+  );
+}
+
+function MindMapFlow({ flowNodes, flowEdges, isSending, onSelectNode }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    fitView({ padding: 0.2, duration: 600 });
+  }, [flowNodes.length, fitView]);
+
+  return (
+    <ReactFlow
+      nodes={flowNodes}
+      edges={flowEdges}
+      nodeTypes={nodeTypes}
+      minZoom={0.05}
+      maxZoom={2}
+      nodesDraggable={true}
+      onNodeClick={(e, node) => onSelectNode(node.data.raw)}
+      onPaneClick={() => onSelectNode(null)}
+      fitView
+      className="mindmap-flow"
+      deletePerspective={true}
+    >
+      <Background color="#164e63" gap={24} size={1} />
+      <Controls position="top-left" showInteractive={false} />
+      <MiniMap
+        position="bottom-right"
+        style={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(34, 211, 238, 0.2)' }}
+        nodeColor={(node) => TYPE_STYLE[node.data.raw.type]?.border || '#22d3ee'}
+        maskColor="rgba(2, 6, 23, 0.7)"
+      />
+    </ReactFlow>
   );
 }
 
@@ -403,111 +471,29 @@ export default function MindMapPanel({
 }) {
   const sourceNodes = mindmap?.nodes || [];
   const sourceEdges = mindmap?.edges || [];
-  const graph = useMemo(
-    () => createGraph(sourceNodes, sourceEdges),
-    [sourceNodes, sourceEdges]
-  );
-  const positions = useMemo(
-    () => computeTreeLayout(sourceNodes, graph.links, graph.rootId),
-    [sourceNodes, graph]
-  );
-  const flowNodes = useMemo(
-    () => sourceNodes.map((node) => toFlowNode(
-      node,
-      positions.get(node.id) || { x: 0, y: 0 },
-      selectedNode,
-      graph.rootId
-    )),
-    [sourceNodes, positions, selectedNode, graph.rootId]
-  );
-  const flowEdges = useMemo(
-    () => graph.links.map(toFlowEdge),
-    [graph.links]
-  );
+
+  const graph = useMemo(() => createGraph(sourceNodes, sourceEdges), [sourceNodes, sourceEdges]);
+  const positions = useMemo(() => computeSpreadingLayout(sourceNodes, graph.links, graph.rootId), [sourceNodes, graph]);
+  const flowNodes = useMemo(() => sourceNodes.map((node) => toFlowNode(node, positions.get(node.id) || { x: 0, y: 0 }, selectedNode, graph.rootId)), [sourceNodes, positions, selectedNode, graph.rootId]);
+  const flowEdges = useMemo(() => graph.links.map((edge) => toFlowEdge(edge, positions)), [graph.links, positions]);
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/92 shadow-2xl shadow-cyan-950/30">
+    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-cyan-300/15 bg-slate-950/92">
       <div className="window-drag border-b border-cyan-300/10 px-5 py-3 pr-24">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-50">Mind Map</h2>
-          <div className="text-xs text-slate-400">
-            {sourceNodes.length} nodes / {sourceEdges.length} edges
-          </div>
-        </div>
+        <h2 className="text-sm font-semibold text-slate-50">Brainstorming Mind Map</h2>
       </div>
 
-      <div className="mindmap-orbit-surface relative min-h-0 flex-1 overflow-hidden bg-slate-950">
-        {isSending ? (
-          <div className="mindmap-progress window-no-drag pointer-events-none absolute right-4 top-4 z-20 w-[min(280px,calc(100%-32px))] rounded-md border border-cyan-300/20 bg-slate-950/88 px-3 py-2 shadow-lg shadow-cyan-950/30">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-cyan-100">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" />
-              Updating mind map
-            </div>
-            <div className="progress-track">
-              <span />
-            </div>
-          </div>
-        ) : null}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-slate-950">
         {flowNodes.length === 0 ? (
-          <div className="absolute inset-4 flex items-center justify-center rounded-md border border-dashed border-cyan-300/20 bg-slate-900/70 text-sm text-slate-400">
-            마인드맵 노드가 없습니다.
-          </div>
+          <div className="absolute inset-0 flex items-center justify-center text-slate-500">대화를 시작하여 마인드맵을 생성하세요.</div>
         ) : (
           <ReactFlowProvider>
-            <ReactFlow
-              className="mindmap-flow"
-              nodes={flowNodes}
-              edges={flowEdges}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.28 }}
-              minZoom={0.35}
-              maxZoom={1.8}
-              nodesDraggable={false}
-              onNodeClick={(event, node) => onSelectNode(node.data.raw)}
-              onPaneClick={() => onSelectNode(null)}
-            >
-              <Background color="#164e63" gap={18} size={1} />
-              <Controls
-                className="mindmap-controls"
-                position="top-left"
-                showInteractive={false}
-                style={{ left: 12, top: 12, bottom: 'auto' }}
-              />
-              <MiniMap
-                className="mindmap-minimap"
-                position="top-left"
-                pannable
-                zoomable
-                bgColor="rgba(15, 23, 42, 0.94)"
-                nodeComponent={MiniMapNode}
-                nodeColor={(node) => TYPE_STYLE[node.data.raw.type]?.border || '#0891b2'}
-                nodeStrokeColor={(node) => TYPE_STYLE[node.data.raw.type]?.border || '#0891b2'}
-                nodeStrokeWidth={3}
-                nodeBorderRadius={4}
-                maskColor="rgba(2, 6, 23, 0.44)"
-                maskStrokeColor="rgba(34, 211, 238, 0.62)"
-                maskStrokeWidth={1.5}
-                style={{
-                  left: 62,
-                  top: 12,
-                  bottom: 'auto',
-                  right: 'auto',
-                  width: 168,
-                  height: 108
-                }}
-              />
-            </ReactFlow>
+            <MindMapFlow flowNodes={flowNodes} flowEdges={flowEdges} onSelectNode={onSelectNode} />
           </ReactFlowProvider>
         )}
       </div>
 
-      <SelectedNodePanel
-        key={selectedNode?.id || 'empty-node'}
-        node={selectedNode}
-        onAskQuestion={onAskNodeQuestion}
-        isSending={isSending}
-      />
+      <SelectedNodePanel node={selectedNode} onAskQuestion={onAskNodeQuestion} isSending={isSending} />
     </section>
   );
 }

@@ -67,7 +67,7 @@ router.post('/', async (req, res, next) => {
         model: req.body.model,
         message: req.body.message,
         conversation,
-        history: listMessages(conversation.id),
+        history: listMessages(conversation.id).slice(0, -1),
         mindmap
       });
       const assistantMessage = createMessage({

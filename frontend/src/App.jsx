@@ -5,6 +5,7 @@ import MindMapPanel from './components/MindMapPanel.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import {
   authenticateProvider,
+  deleteConversation,
   fetchConversation,
   fetchConversations,
   fetchProviderModels,
@@ -159,10 +160,51 @@ export default function App() {
 
   async function loadConversations() {
     try {
-      setConversations(await fetchConversations());
+      const list = await fetchConversations();
+      setConversations(list);
+
+      // 현재 선택된 대화가 목록에 없으면 New Chat으로 리셋 (삭제 후 잔상 방지)
+      setState((current) => {
+        if (current.conversationId && !list.some((c) => c.id === current.conversationId)) {
+          return {
+            ...current,
+            conversationId: null,
+            messages: [],
+            agentOpinions: [],
+            mindmap: { nodes: [], edges: [] },
+            suggestedQuestions: [],
+            selectedNode: null
+          };
+        }
+        return current;
+      });
     } catch (error) {
       setState((current) => ({
         ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+    }
+  }
+
+  async function handleDeleteConversation() {
+    if (!state.conversationId || state.isSending) {
+      return;
+    }
+
+    if (!window.confirm('정말 이 대화방을 삭제하시겠습니까? 삭제된 대화와 마인드맵 데이터는 복구할 수 없습니다.')) {
+      return;
+    }
+
+    setState((current) => ({ ...current, isSending: true, error: null }));
+
+    try {
+      await deleteConversation(state.conversationId);
+      await loadConversations();
+      handleNewChat();
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        isSending: false,
         error: error.response?.data?.error?.message || error.message
       }));
     }
@@ -231,6 +273,17 @@ export default function App() {
 
     try {
       const result = await authenticateProvider(providerId, payload);
+      const authUrl = result.provider?.authUrl || result.authUrl;
+
+      if (authUrl) {
+        if (window.desktopShell?.openExternal) {
+          await window.desktopShell.openExternal(authUrl);
+        } else {
+          window.open(authUrl, '_blank');
+        }
+        return;
+      }
+
       mergeProvider({
         ...result.provider,
         modelOptions: result.modelOptions || result.models || [],
@@ -252,7 +305,9 @@ export default function App() {
     setState((current) => ({
       ...initialConversationState,
       provider: current.provider,
-      model: current.model
+      model: current.model,
+      isSending: false,
+      error: null
     }));
     setIsChatVisible(true);
   }
@@ -475,6 +530,7 @@ export default function App() {
             conversationId={state.conversationId}
             onNewChat={handleNewChat}
             onSelectConversation={handleSelectConversation}
+            onDeleteConversation={handleDeleteConversation}
             canSend={canSend}
             sendBlockedReason={sendBlockedReason}
           />

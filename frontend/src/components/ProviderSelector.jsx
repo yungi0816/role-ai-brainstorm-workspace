@@ -61,7 +61,9 @@ export default function ProviderSelector({
   isAuthenticating
 }) {
   const [credentialValue, setCredentialValue] = useState('');
+  const [fieldValues, setFieldValues] = useState({});
   const activeProvider = providers.find((item) => item.id === provider);
+
   const models = activeProvider?.modelOptions?.length
     ? activeProvider.modelOptions
     : (activeProvider?.models || []).map((item) => ({ id: item, label: item }));
@@ -69,13 +71,18 @@ export default function ProviderSelector({
   const StatusIcon = tone.Icon;
 
   async function handleAuthSubmit(event) {
-    event.preventDefault();
-    if (!activeProvider?.auth || !credentialValue.trim()) {
+    if (event) event.preventDefault();
+    if (!activeProvider?.auth) {
       return;
     }
 
-    await onProviderAuth(activeProvider.id, { apiKey: credentialValue.trim() });
-    setCredentialValue('');
+    if (activeProvider.auth.type === 'api_key') {
+      if (!credentialValue.trim()) return;
+      await onProviderAuth(activeProvider.id, { apiKey: credentialValue.trim() });
+      setCredentialValue('');
+    } else {
+      await onProviderAuth(activeProvider.id, fieldValues);
+    }
   }
 
   return (
@@ -133,6 +140,65 @@ export default function ProviderSelector({
           <RefreshCw size={17} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      {activeProvider?.auth?.type === 'oauth' ? (
+        <form className="grid gap-3 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3" onSubmit={handleAuthSubmit}>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-100">
+            <KeyRound size={15} />
+            {activeProvider.auth.label}
+          </div>
+          <p className="text-xs leading-5 text-slate-400">{activeProvider.auth.helpText}</p>
+
+          {activeProvider.auth.fields?.map((field) => (
+            <div key={field.id} className="grid gap-1.5">
+              <label htmlFor={`field-${field.id}`} className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                {field.label}
+              </label>
+              <input
+                id={`field-${field.id}`}
+                className="h-9 rounded border border-slate-700 bg-slate-950 px-3 text-xs text-slate-100 outline-none transition focus:border-cyan-300/60 focus:ring-1 focus:ring-cyan-300/10"
+                type={field.type || 'text'}
+                placeholder={field.placeholder}
+                value={fieldValues[field.id] || ''}
+                onChange={(e) => setFieldValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
+                required={field.required}
+              />
+            </div>
+          ))}
+
+          <button
+            type="submit"
+            className="h-9 rounded-md border border-cyan-300/20 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? 'Redirecting...' : 'Sign in / Connect'}
+          </button>
+          {activeProvider.note && (
+            <p className="text-[10px] leading-4 text-rose-300/70">{activeProvider.note}</p>
+          )}
+        </form>
+      ) : null}
+
+      {activeProvider?.auth?.type === 'oauth_cli' ? (
+        <div className="grid gap-3 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-100">
+            <KeyRound size={15} />
+            {activeProvider.auth.label}
+          </div>
+          <p className="text-xs leading-5 text-slate-400">{activeProvider.auth.helpText}</p>
+          <button
+            type="button"
+            className="h-9 rounded-md border border-cyan-300/20 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleAuthSubmit}
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? 'Starting CLI Login...' : 'Sign in via CLI'}
+          </button>
+          {activeProvider.note && (
+            <p className="text-[10px] leading-4 text-cyan-300/70">{activeProvider.note}</p>
+          )}
+        </div>
+      ) : null}
 
       {activeProvider?.auth?.type === 'api_key' ? (
         <form className="grid gap-2 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3" onSubmit={handleAuthSubmit}>

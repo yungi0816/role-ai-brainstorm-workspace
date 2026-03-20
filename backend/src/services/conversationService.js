@@ -182,6 +182,11 @@ export function listConversations() {
     .all();
 }
 
+export function deleteConversation(conversationId) {
+  const db = getDatabase();
+  db.prepare('DELETE FROM conversations WHERE id = ?').run(conversationId);
+}
+
 export function getMindmap(conversationId) {
   const db = getDatabase();
   const nodes = db.prepare(`

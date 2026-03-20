@@ -1,4 +1,5 @@
-import { Globe2, MessageCircle, Plus, Send, Settings } from 'lucide-react';
+import { Globe2, MessageCircle, Plus, Send, Settings, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
 function MessageBubble({ message }) {
@@ -8,7 +9,7 @@ function MessageBubble({ message }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={[
-          'max-w-[86%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm',
+          'max-w-[86%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm markdown-body',
           isUser
             ? 'bg-cyan-500/18 text-cyan-50 ring-1 ring-cyan-300/20'
             : message.isError
@@ -16,7 +17,7 @@ function MessageBubble({ message }) {
               : 'border border-slate-700/80 bg-slate-900/86 text-slate-100'
         ].join(' ')}
       >
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        <ReactMarkdown>{message.content}</ReactMarkdown>
       </div>
     </div>
   );
@@ -55,6 +56,7 @@ export default function ChatPanel({
   conversationId,
   onNewChat,
   onSelectConversation,
+  onDeleteConversation,
   canSend,
   sendBlockedReason
 }) {
@@ -145,6 +147,17 @@ export default function ChatPanel({
         >
           <Plus size={16} />
         </button>
+        {conversationId && conversationId !== 'new' && (
+          <button
+            type="button"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-rose-300/20 bg-rose-950/30 text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-100"
+            onClick={onDeleteConversation}
+            title="Delete chat"
+            aria-label="Delete chat"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">

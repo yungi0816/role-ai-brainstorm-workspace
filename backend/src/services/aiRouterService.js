@@ -59,7 +59,7 @@ export async function listProviderModels(providerId) {
 
 export async function configureProvider(providerId, credentials) {
   const provider = getProviderOrThrow(providerId);
-  const metadata = await provider.configureCredentials(credentials);
+  const metadata = await provider.configureCredentials(credentials || {});
   const models = await provider.listModelOptions();
 
   return {

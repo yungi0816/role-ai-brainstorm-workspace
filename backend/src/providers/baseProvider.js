@@ -188,4 +188,8 @@ export class BaseProvider {
       providerId: this.id
     });
   }
+
+  async handleCallback() {
+    return false;
+  }
 }
