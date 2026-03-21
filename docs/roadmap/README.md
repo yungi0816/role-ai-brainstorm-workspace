@@ -8,7 +8,7 @@ This log separates implemented work from planned work. It reflects repository st
 | --- | --- | --- |
 | 0 | Repository setup and GitHub origin configuration. | Completed |
 | 1 | Backend server and SQLite foundation. | `chore: initialize backend foundation` |
-| 2 | Provider interface layer for Ollama, Gemini CLI, OpenAI, and Copilot. | `feat: add provider interface layer` |
+| 2 | Provider interface layer for Ollama, Antigravity CLI, OpenAI, and Copilot. Legacy CLI provider ids are accepted for existing conversations. | `feat: add provider interface layer` |
 | 3 | Ollama runtime checks, connection checks, model listing, and pull support. | `feat: add ollama runtime checks` |
 | 4 | Role-based prompt service and JSON response normalization. | `feat: normalize ai json responses` |
 | 5 | Incremental mind map patch persistence. | `feat: persist mindmap patches` |
@@ -26,7 +26,7 @@ This log separates implemented work from planned work. It reflects repository st
 | --- | --- |
 | Improve desktop visual polish and window behavior. | In progress |
 | Add stronger Ollama setup guidance and runtime recovery flows. | In progress |
-| Harden Gemini CLI provider error handling and command configuration. | Planned |
+| Harden Antigravity CLI provider error handling and command configuration. | Planned |
 | Implement OpenAI provider execution behind API-key checks. | Planned |
 | Keep Copilot provider as a stable interface until OAuth/SDK integration is selected. | Planned |
 | Add test coverage around API contracts and patch application. | Planned |

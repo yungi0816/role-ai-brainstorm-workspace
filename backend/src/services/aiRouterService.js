@@ -1,6 +1,6 @@
 import { ProviderError } from '../providers/baseProvider.js';
 import { CopilotProvider } from '../providers/copilotProvider.js';
-import { GeminiCliProvider } from '../providers/geminiCliProvider.js';
+import { AntigravityCliProvider } from '../providers/antigravityCliProvider.js';
 import { OllamaProvider } from '../providers/ollamaProvider.js';
 import { OpenAIProvider } from '../providers/openaiProvider.js';
 import {
@@ -10,14 +10,18 @@ import {
 
 const providerInstances = [
   new OllamaProvider(),
-  new GeminiCliProvider(),
+  new AntigravityCliProvider(),
   new OpenAIProvider(),
   new CopilotProvider()
 ];
 
-const providerRegistry = new Map(
-  providerInstances.map((provider) => [provider.id, provider])
-);
+const providerRegistry = new Map();
+for (const provider of providerInstances) {
+  providerRegistry.set(provider.id, provider);
+  for (const alias of provider.aliases || []) {
+    providerRegistry.set(alias, provider);
+  }
+}
 
 export function listProviders() {
   return providerInstances.map((provider) => provider.getMetadata());

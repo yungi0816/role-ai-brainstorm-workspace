@@ -41,7 +41,7 @@ Response includes:
 
 ### `GET /api/providers`
 
-Returns provider metadata for Ollama, Gemini CLI, OpenAI, and Copilot.
+Returns provider metadata for Ollama, Antigravity CLI, OpenAI, and Copilot.
 
 ### `GET /api/providers/:providerId`
 

@@ -26,7 +26,7 @@ The project began as a web MVP and is now moving toward packaged Windows desktop
 | Mind map patching | AI responses update the stored mind map incrementally instead of regenerating it. | Implemented |
 | Node follow-up questions | Selected mind map nodes can be used as follow-up context for additional AI turns. | Implemented |
 | Ollama runtime checks | The app detects Ollama install, server connection, local models, and offers download/model pull actions. | Implemented |
-| Gemini CLI provider | Child-process provider interface exists and is marked ready when selected. | Basic implementation |
+| Antigravity CLI provider | Child-process provider interface runs Antigravity CLI through `agy` and keeps a legacy `gemini-cli` alias for existing conversations. | Basic implementation |
 | OpenAI provider | API-key-gated provider shell exists. | Planned implementation |
 | GitHub Copilot provider | Provider contract exists for future OAuth/SDK integration. | Stub |
 
@@ -41,7 +41,7 @@ flowchart LR
     Services --> SQLite["SQLite Database"]
     Services --> Providers["AI Providers"]
     Providers --> Ollama["Ollama Local"]
-    Providers --> Gemini["Gemini CLI"]
+    Providers --> Antigravity["Antigravity CLI"]
     Providers --> OpenAI["OpenAI GPT"]
     Providers --> Copilot["Copilot Stub"]
 ```
@@ -56,7 +56,7 @@ The desktop shell starts the Express backend in-process, stores the SQLite datab
 | Frontend | React, Vite, Tailwind CSS, React Flow, Axios |
 | Backend | Node.js, Express, dotenv, child_process |
 | Persistence | SQLite through Node `node:sqlite` |
-| AI Providers | Ollama Local, Gemini CLI, OpenAI shell, Copilot stub |
+| AI Providers | Ollama Local, Antigravity CLI, OpenAI shell, Copilot stub |
 
 ## Repository Structure
 
@@ -126,7 +126,7 @@ Packaging details are documented in [docs/deployment/README.md](docs/deployment/
 | `CORS_ORIGIN` | No | Comma-separated allowed origins for standalone backend mode. |
 | `OLLAMA_HOST` | No | Ollama HTTP endpoint. Defaults to `http://localhost:11434`. |
 | `OPENAI_API_KEY` | For OpenAI | Enables future OpenAI provider execution. |
-| `GEMINI_CLI_COMMAND` | No | Gemini CLI executable name. Defaults to `gemini`. |
+| `ANTIGRAVITY_CLI_COMMAND` | No | Antigravity CLI executable name. Defaults to `agy`. |
 | `VITE_API_BASE_URL` | Frontend dev only | API base URL for Vite development mode. |
 
 ## Verification

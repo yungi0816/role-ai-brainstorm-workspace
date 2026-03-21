@@ -17,7 +17,7 @@ flowchart LR
     Services --> SQLite["SQLite"]
     Services --> Providers["Provider Layer"]
     Providers --> Ollama["Ollama HTTP API"]
-    Providers --> Gemini["Gemini CLI Process"]
+    Providers --> Antigravity["Antigravity CLI Process"]
     Providers --> OpenAI["OpenAI Provider Shell"]
     Providers --> Copilot["Copilot Provider Stub"]
 ```
@@ -30,7 +30,7 @@ flowchart LR
 | React renderer | `frontend/` | Chat-first UI, AI settings panel, Ollama setup panel, React Flow mind map visualization. |
 | Express API | `backend/src/routes/` | Exposes chat, provider, and mind map HTTP routes. |
 | Application services | `backend/src/services/` | AI routing, prompt construction, response normalization, persistence, mind map patching, Ollama runtime checks. |
-| Provider layer | `backend/src/providers/` | Provides common provider contracts for Ollama, Gemini CLI, OpenAI, and Copilot. |
+| Provider layer | `backend/src/providers/` | Provides common provider contracts for Ollama, Antigravity CLI, OpenAI, and Copilot. |
 | Database layer | `backend/src/db/` | Initializes SQLite and applies the schema. |
 
 ## Primary AI Flow
