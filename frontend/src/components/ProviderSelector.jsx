@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, KeyRound, RefreshCw } from 'lucide-react';
+import { fetchProviderDiagnostics, testProvider as runProviderTest } from '../api/chatApi.js';
 
 function providerTone(provider) {
   if (!provider) {
@@ -49,6 +50,46 @@ function providerTone(provider) {
   };
 }
 
+function checkClassName(status) {
+  if (status === 'pass') {
+    return 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100';
+  }
+
+  if (status === 'fail') {
+    return 'border-rose-300/25 bg-rose-400/10 text-rose-100';
+  }
+
+  if (status === 'warn') {
+    return 'border-amber-300/25 bg-amber-400/10 text-amber-100';
+  }
+
+  return 'border-slate-700 bg-slate-900/70 text-slate-300';
+}
+
+function summaryClassName(state) {
+  if (state === 'ready') {
+    return 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100';
+  }
+
+  if (state === 'error') {
+    return 'border-rose-300/25 bg-rose-400/10 text-rose-100';
+  }
+
+  return 'border-amber-300/25 bg-amber-400/10 text-amber-100';
+}
+
+function formatCheckedAt(value) {
+  if (!value) {
+    return 'not checked';
+  }
+
+  return new Date(value).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
 export default function ProviderSelector({
   providers,
   provider,
@@ -62,6 +103,11 @@ export default function ProviderSelector({
 }) {
   const [credentialValue, setCredentialValue] = useState('');
   const [fieldValues, setFieldValues] = useState({});
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [testResult, setTestResult] = useState(null);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [providerActionError, setProviderActionError] = useState(null);
   const activeProvider = providers.find((item) => item.id === provider);
 
   const models = activeProvider?.modelOptions?.length
@@ -69,6 +115,12 @@ export default function ProviderSelector({
     : (activeProvider?.models || []).map((item) => ({ id: item, label: item }));
   const tone = providerTone(activeProvider);
   const StatusIcon = tone.Icon;
+
+  useEffect(() => {
+    setDiagnostics(null);
+    setTestResult(null);
+    setProviderActionError(null);
+  }, [activeProvider?.id, model]);
 
   async function handleAuthSubmit(event) {
     if (event) event.preventDefault();
@@ -82,6 +134,42 @@ export default function ProviderSelector({
       setCredentialValue('');
     } else {
       await onProviderAuth(activeProvider.id, fieldValues);
+    }
+  }
+
+  async function handleDiagnostics() {
+    if (!activeProvider) {
+      return;
+    }
+
+    setIsDiagnosing(true);
+    setProviderActionError(null);
+    try {
+      setDiagnostics(await fetchProviderDiagnostics(activeProvider.id, model));
+    } catch (error) {
+      setProviderActionError(error.response?.data?.error?.message || error.message);
+    } finally {
+      setIsDiagnosing(false);
+    }
+  }
+
+  async function handleProviderTest() {
+    if (!activeProvider) {
+      return;
+    }
+
+    setIsTesting(true);
+    setProviderActionError(null);
+    try {
+      const result = await runProviderTest(activeProvider.id, model);
+      setTestResult(result);
+      if (result.provider) {
+        await onRefresh();
+      }
+    } catch (error) {
+      setProviderActionError(error.response?.data?.error?.message || error.message);
+    } finally {
+      setIsTesting(false);
     }
   }
 
@@ -140,6 +228,68 @@ export default function ProviderSelector({
           <RefreshCw size={17} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      <section className="grid gap-3 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xs font-semibold text-slate-100">Provider diagnostics</h3>
+            <p className="text-[11px] text-slate-500">
+              Last check: {formatCheckedAt(diagnostics?.checkedAt || testResult?.testedAt)}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-[11px] font-semibold text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleDiagnostics}
+              disabled={!activeProvider || isDiagnosing || isTesting}
+            >
+              {isDiagnosing ? 'Checking...' : 'Run diagnostics'}
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-md border border-cyan-300/20 bg-cyan-400/10 px-2.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleProviderTest}
+              disabled={!activeProvider || isDiagnosing || isTesting}
+            >
+              {isTesting ? 'Testing...' : 'Test provider'}
+            </button>
+          </div>
+        </div>
+
+        {diagnostics ? (
+          <div className="grid gap-2">
+            <div className={`rounded-md border px-3 py-2 text-xs ${summaryClassName(diagnostics.summary?.state)}`}>
+              <div className="font-semibold">{diagnostics.summary?.message}</div>
+              <div className="mt-0.5 opacity-80">{diagnostics.provider?.label || activeProvider?.label} / {diagnostics.model || model}</div>
+            </div>
+            <div className="grid gap-1.5">
+              {(diagnostics.checks || []).map((check) => (
+                <div key={check.id} className={`rounded border px-2.5 py-2 text-[11px] ${checkClassName(check.status)}`}>
+                  <div className="font-semibold">{check.label}</div>
+                  <div className="mt-0.5 leading-4 opacity-85">{check.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {testResult ? (
+          <div className={`rounded-md border px-3 py-2 text-xs ${testResult.ok ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100' : 'border-rose-300/25 bg-rose-400/10 text-rose-100'}`}>
+            <div className="font-semibold">
+              {testResult.ok ? 'Execution test passed' : `Execution test failed: ${testResult.category || 'unknown'}`}
+            </div>
+            <div className="mt-1 leading-5 opacity-85">{testResult.message}</div>
+            <div className="mt-1 text-[11px] opacity-70">{testResult.durationMs} ms / {testResult.model}</div>
+          </div>
+        ) : null}
+
+        {providerActionError ? (
+          <div className="rounded-md border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-100">
+            {providerActionError}
+          </div>
+        ) : null}
+      </section>
 
       {activeProvider?.auth?.type === 'oauth' ? (
         <form className="grid gap-3 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3" onSubmit={handleAuthSubmit}>

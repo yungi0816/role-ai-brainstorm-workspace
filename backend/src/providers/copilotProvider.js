@@ -1,4 +1,4 @@
-import { BaseProvider } from './baseProvider.js';
+import { BaseProvider, summarizeChecks } from './baseProvider.js';
 
 export class CopilotProvider extends BaseProvider {
   constructor() {
@@ -41,6 +41,40 @@ export class CopilotProvider extends BaseProvider {
 
   isConfigured() {
     return true;
+  }
+
+  async diagnose({ model } = {}) {
+    const checks = [
+      {
+        id: 'copilot-interface',
+        label: 'Provider interface',
+        status: 'pass',
+        message: 'Copilot provider contract is available.'
+      },
+      {
+        id: 'copilot-sdk',
+        label: 'OAuth/SDK execution',
+        status: 'warn',
+        message: 'Copilot execution is still a stub until OAuth and SDK integration are selected.'
+      }
+    ];
+
+    if (model) {
+      checks.push({
+        id: 'copilot-model',
+        label: 'Selected model',
+        status: this.supportsModel(model) ? 'pass' : 'fail',
+        message: this.supportsModel(model) ? `Model "${model}" is accepted.` : `Model "${model}" is not supported.`
+      });
+    }
+
+    return {
+      provider: this.getMetadata(),
+      model,
+      checkedAt: new Date().toISOString(),
+      summary: summarizeChecks(checks),
+      checks
+    };
   }
 
   async configureCredentials(config = {}) {

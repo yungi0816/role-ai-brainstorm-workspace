@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import {
   configureProvider,
+  diagnoseProvider,
   getProviderOrThrow,
   listProviderModels,
-  listProviders
+  listProviders,
+  testProvider
 } from '../services/aiRouterService.js';
 import {
   getOllamaStatus,
@@ -60,6 +62,26 @@ router.post('/ollama/models/pull', async (req, res, next) => {
 router.get('/:providerId/models', async (req, res, next) => {
   try {
     res.json(await listProviderModels(req.params.providerId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/:providerId/diagnostics', async (req, res, next) => {
+  try {
+    res.json(await diagnoseProvider(req.params.providerId, {
+      model: req.query.model
+    }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/:providerId/test', async (req, res, next) => {
+  try {
+    res.json(await testProvider(req.params.providerId, {
+      model: req.body?.model
+    }));
   } catch (error) {
     next(error);
   }

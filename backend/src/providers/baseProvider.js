@@ -85,6 +85,43 @@ export class BaseProvider {
     return this.getModelOptions();
   }
 
+  async diagnose({ model } = {}) {
+    const configured = this.isConfigured();
+    const status = this.getStatus();
+    const modelSupported = model ? this.supportsModel(model) : true;
+    const checks = [
+      {
+        id: 'configured',
+        label: 'Configuration',
+        status: configured ? 'pass' : 'fail',
+        message: configured ? 'Provider is configured.' : 'Provider requires configuration.'
+      },
+      {
+        id: 'status',
+        label: 'Readiness',
+        status: status === 'ready' ? 'pass' : 'warn',
+        message: `Provider status is ${status}.`
+      }
+    ];
+
+    if (model) {
+      checks.push({
+        id: 'model',
+        label: 'Selected model',
+        status: modelSupported ? 'pass' : 'fail',
+        message: modelSupported ? `Model "${model}" is supported.` : `Model "${model}" is not supported.`
+      });
+    }
+
+    return {
+      provider: this.getMetadata(),
+      model,
+      checkedAt: new Date().toISOString(),
+      summary: summarizeChecks(checks),
+      checks
+    };
+  }
+
   getAuthMetadata() {
     return this.auth;
   }
@@ -192,4 +229,25 @@ export class BaseProvider {
   async handleCallback() {
     return false;
   }
+}
+
+export function summarizeChecks(checks) {
+  if (checks.some((check) => check.status === 'fail')) {
+    return {
+      state: 'error',
+      message: 'Provider has blocking issues.'
+    };
+  }
+
+  if (checks.some((check) => check.status === 'warn')) {
+    return {
+      state: 'warning',
+      message: 'Provider needs attention before reliable use.'
+    };
+  }
+
+  return {
+    state: 'ready',
+    message: 'Provider is ready.'
+  };
 }

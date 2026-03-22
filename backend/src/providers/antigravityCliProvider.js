@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { BaseProvider, ProviderError } from './baseProvider.js';
+import { BaseProvider, ProviderError, summarizeChecks } from './baseProvider.js';
 
 const DEFAULT_ANTIGRAVITY_CLI_MODEL = 'antigravity-cli-default';
 const ANTIGRAVITY_CLI_MODEL_OPTIONS = [
@@ -52,6 +52,21 @@ function commandExists(command) {
   return result.status === 0;
 }
 
+function checkCommandHelp(command) {
+  const result = spawnSync(command, ['--help'], {
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+    timeout: 5000,
+    windowsHide: true
+  });
+
+  return {
+    ok: result.status === 0,
+    exitCode: result.status,
+    output: cleanCliOutput(result.stdout || result.stderr, 600)
+  };
+}
+
 export class AntigravityCliProvider extends BaseProvider {
   constructor() {
     super({
@@ -85,6 +100,57 @@ export class AntigravityCliProvider extends BaseProvider {
 
   getExecutable() {
     return getConfiguredCommand();
+  }
+
+  async diagnose({ model } = {}) {
+    const command = this.getExecutable();
+    const installed = commandExists(command);
+    const helpCheck = installed ? checkCommandHelp(command) : null;
+    const checks = [
+      {
+        id: 'antigravity-command',
+        label: 'CLI executable',
+        status: installed ? 'pass' : 'fail',
+        message: installed ? `Found "${command}".` : `Command "${command}" was not found on PATH.`
+      },
+      {
+        id: 'antigravity-help',
+        label: 'CLI startup',
+        status: !installed ? 'fail' : helpCheck?.ok ? 'pass' : 'warn',
+        message: !installed
+          ? 'Install Antigravity CLI or set ANTIGRAVITY_CLI_COMMAND.'
+          : helpCheck?.ok
+            ? 'Antigravity CLI responds to --help.'
+            : 'Antigravity CLI was found, but --help did not complete cleanly.'
+      },
+      {
+        id: 'antigravity-auth',
+        label: 'Google account',
+        status: 'info',
+        message: 'Account access is verified by the execution test.'
+      }
+    ];
+
+    if (model) {
+      checks.push({
+        id: 'antigravity-model',
+        label: 'Selected model',
+        status: this.supportsModel(model) ? 'pass' : 'fail',
+        message: this.supportsModel(model)
+          ? `Model "${model}" is accepted by this provider.`
+          : `Model "${model}" is not accepted by this provider.`
+      });
+    }
+
+    return {
+      provider: this.getMetadata(),
+      model,
+      checkedAt: new Date().toISOString(),
+      summary: summarizeChecks(checks),
+      checks,
+      command,
+      help: helpCheck
+    };
   }
 
   async configureCredentials() {
@@ -183,8 +249,8 @@ export class AntigravityCliProvider extends BaseProvider {
     });
   }
 
-  async generateText({ model, prompt }) {
+  async generateText({ model, prompt, timeoutMs }) {
     this.validateModel(model);
-    return this.runCli(prompt, { model });
+    return this.runCli(prompt, { model, timeoutMs });
   }
 }

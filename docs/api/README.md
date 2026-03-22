@@ -47,6 +47,32 @@ Returns provider metadata for Ollama, Antigravity CLI, OpenAI, and Copilot.
 
 Returns metadata for one registered provider.
 
+### `GET /api/providers/:providerId/diagnostics`
+
+Runs non-generative readiness checks for a provider. The optional `model` query parameter checks whether the current model is usable by that provider.
+
+Response includes:
+
+- `provider`
+- `model`
+- `checkedAt`
+- `summary`
+- `checks`
+
+### `POST /api/providers/:providerId/test`
+
+Runs a short execution test against the selected provider and model. The test asks the provider to return a small JSON object, then reports whether execution and JSON parsing succeeded.
+
+Request:
+
+```json
+{
+  "model": "antigravity-cli-default"
+}
+```
+
+Failure categories include `not_installed`, `authentication`, `permission`, `timeout`, `json_response`, and `execution`.
+
 ## Ollama
 
 ### `GET /api/providers/ollama/status`

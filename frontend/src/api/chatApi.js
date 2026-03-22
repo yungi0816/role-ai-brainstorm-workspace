@@ -17,6 +17,18 @@ export async function fetchProviderModels(providerId) {
   return data;
 }
 
+export async function fetchProviderDiagnostics(providerId, model) {
+  const { data } = await api.get(`/providers/${providerId}/diagnostics`, {
+    params: model ? { model } : undefined
+  });
+  return data;
+}
+
+export async function testProvider(providerId, model) {
+  const { data } = await api.post(`/providers/${providerId}/test`, { model });
+  return data;
+}
+
 export async function authenticateProvider(providerId, payload) {
   const { data } = await api.post(`/providers/${providerId}/auth`, payload);
   return data;

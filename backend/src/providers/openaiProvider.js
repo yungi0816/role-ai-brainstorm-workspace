@@ -1,4 +1,4 @@
-import { BaseProvider, ProviderError } from './baseProvider.js';
+import { BaseProvider, ProviderError, summarizeChecks } from './baseProvider.js';
 
 const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1';
 const OPENAI_FALLBACK_MODELS = [
@@ -89,6 +89,56 @@ export class OpenAIProvider extends BaseProvider {
       ...super.getMetadata(),
       apiKeyRequired: true,
       apiKeyPresent: this.isConfigured()
+    };
+  }
+
+  async diagnose({ model } = {}) {
+    const configured = this.isConfigured();
+    const checks = [
+      {
+        id: 'openai-api-key',
+        label: 'API key',
+        status: configured ? 'pass' : 'fail',
+        message: configured ? 'OpenAI API key is configured in the backend process.' : 'Set an OpenAI API key in settings first.'
+      }
+    ];
+
+    if (configured) {
+      try {
+        const models = await this.listModelOptions();
+        checks.push({
+          id: 'openai-models',
+          label: 'Model discovery',
+          status: models.length > 0 ? 'pass' : 'warn',
+          message: models.length > 0 ? `Discovered ${models.length} chat-capable models.` : 'No chat-capable models were discovered.'
+        });
+      } catch (error) {
+        checks.push({
+          id: 'openai-models',
+          label: 'Model discovery',
+          status: 'fail',
+          message: error.message
+        });
+      }
+    }
+
+    if (model) {
+      checks.push({
+        id: 'openai-selected-model',
+        label: 'Selected model',
+        status: this.supportsModel(model) ? 'pass' : 'warn',
+        message: this.supportsModel(model)
+          ? `Model "${model}" is accepted.`
+          : `Model "${model}" is not in the current discovered model list.`
+      });
+    }
+
+    return {
+      provider: this.getMetadata(),
+      model,
+      checkedAt: new Date().toISOString(),
+      summary: summarizeChecks(checks),
+      checks
     };
   }
 
