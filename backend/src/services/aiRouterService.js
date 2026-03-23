@@ -5,6 +5,7 @@ import { OllamaProvider } from '../providers/ollamaProvider.js';
 import { OpenAIProvider } from '../providers/openaiProvider.js';
 import {
   buildBrainstormPrompt,
+  buildJsonRepairPrompt,
   normalizeAiJsonResponse
 } from './promptService.js';
 
@@ -90,6 +91,17 @@ function withTimeout(promise, timeoutMs) {
   });
 
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function generateProviderText(provider, { model, prompt, conversation, timeoutMs }) {
+  const rawProviderResponse = await provider.generateText({
+    model,
+    prompt,
+    conversation,
+    timeoutMs
+  });
+
+  return provider.extractText(rawProviderResponse);
 }
 
 export function listProviders() {
@@ -215,12 +227,60 @@ export async function generateBrainstormResponse({
     nodeContext
   });
 
-  const rawProviderResponse = await provider.generateText({
+  const rawText = await generateProviderText(provider, {
     model,
     prompt,
     conversation
   });
 
-  const rawText = provider.extractText(rawProviderResponse);
-  return normalizeAiJsonResponse(rawText);
+  const normalized = normalizeAiJsonResponse(rawText);
+  if (normalized.metadata?.normalizedBy !== 'fallback') {
+    return normalized;
+  }
+
+  try {
+    const repairPrompt = buildJsonRepairPrompt({
+      rawText,
+      parseError: normalized.metadata?.parseError
+    });
+    const repairedText = await generateProviderText(provider, {
+      model,
+      prompt: repairPrompt,
+      conversation,
+      timeoutMs: 60000
+    });
+    const repaired = normalizeAiJsonResponse(repairedText);
+
+    if (repaired.metadata?.normalizedBy !== 'fallback') {
+      return {
+        ...repaired,
+        metadata: {
+          ...repaired.metadata,
+          repairAttempted: true,
+          repairSucceeded: true,
+          initialParseError: normalized.metadata?.parseError
+        }
+      };
+    }
+
+    return {
+      ...normalized,
+      metadata: {
+        ...normalized.metadata,
+        repairAttempted: true,
+        repairSucceeded: false,
+        repairParseError: repaired.metadata?.parseError
+      }
+    };
+  } catch (error) {
+    return {
+      ...normalized,
+      metadata: {
+        ...normalized.metadata,
+        repairAttempted: true,
+        repairSucceeded: false,
+        repairError: error.message
+      }
+    };
+  }
 }

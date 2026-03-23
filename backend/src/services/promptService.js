@@ -12,6 +12,15 @@ const PATCH_KEYS = [
   'removeEdges'
 ];
 
+const PATCH_LIMITS = {
+  addNodes: 12,
+  updateNodes: 12,
+  removeNodes: 8,
+  addEdges: 16,
+  updateEdges: 12,
+  removeEdges: 8
+};
+
 function truncateText(value, maxLength = 1200) {
   const text = String(value || '').trim();
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
@@ -123,6 +132,28 @@ ${JSON.stringify(promptContext, null, 2)}
 `.trim();
 }
 
+export function buildJsonRepairPrompt({ rawText, parseError }) {
+  return `
+아래 AI 응답을 반드시 유효한 JSON 객체 하나로만 복구하십시오.
+설명, 코드블록, 마크다운 fence 없이 JSON만 반환하십시오.
+
+필수 최상위 키:
+- chatResponse: string
+- agentOpinions: array, 반드시 5개 역할 포함: ${REQUIRED_AGENT_ROLES.join(', ')}
+- mindmapPatch: object, addNodes/updateNodes/removeNodes/addEdges/updateEdges/removeEdges 배열 포함
+- suggestedQuestions: string array
+
+mindmapPatch 노드 type은 다음 중 하나만 사용하십시오: ${MINDMAP_NODE_TYPES.join(', ')}
+복구할 수 없는 mindmapPatch 항목은 빈 배열로 두십시오.
+
+파싱 오류:
+${truncateText(parseError, 800)}
+
+복구 대상 원문:
+${truncateText(rawText, 8000)}
+`.trim();
+}
+
 function stripJsonCodeFence(text) {
   const trimmed = String(text || '').trim();
   const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
@@ -151,6 +182,10 @@ function asString(value, fallback = '') {
   }
 
   return String(value).trim();
+}
+
+function asBoundedString(value, maxLength, fallback = '') {
+  return truncateText(asString(value, fallback), maxLength);
 }
 
 function normalizeAgentOpinions(agentOpinions) {
@@ -183,41 +218,41 @@ function normalizeNode(node) {
   const type = MINDMAP_NODE_TYPES.includes(node?.type) ? node.type : 'idea';
 
   return {
-    id: asString(node?.id),
-    label: asString(node?.label),
+    id: asBoundedString(node?.id, 96),
+    label: asBoundedString(node?.label, 80),
     type,
-    parentId: node?.parentId === undefined ? null : node.parentId,
-    description: asString(node?.description)
+    parentId: node?.parentId === undefined ? null : asBoundedString(node.parentId, 96),
+    description: asBoundedString(node?.description, 500)
   };
 }
 
 function normalizeNodeUpdate(node) {
   return {
-    id: asString(node?.id),
-    label: node?.label === undefined ? undefined : asString(node.label),
+    id: asBoundedString(node?.id, 96),
+    label: node?.label === undefined ? undefined : asBoundedString(node.label, 80),
     type: node?.type === undefined
       ? undefined
       : (MINDMAP_NODE_TYPES.includes(node.type) ? node.type : 'idea'),
-    parentId: node?.parentId === undefined ? undefined : node.parentId,
-    description: node?.description === undefined ? undefined : asString(node.description)
+    parentId: node?.parentId === undefined ? undefined : asBoundedString(node.parentId, 96),
+    description: node?.description === undefined ? undefined : asBoundedString(node.description, 500)
   };
 }
 
 function normalizeEdge(edge) {
   return {
-    id: asString(edge?.id),
-    source: asString(edge?.source),
-    target: asString(edge?.target),
-    label: asString(edge?.label)
+    id: asBoundedString(edge?.id, 120),
+    source: asBoundedString(edge?.source, 96),
+    target: asBoundedString(edge?.target, 96),
+    label: asBoundedString(edge?.label, 80)
   };
 }
 
 function normalizeEdgeUpdate(edge) {
   return {
-    id: asString(edge?.id),
-    source: edge?.source === undefined ? undefined : asString(edge.source),
-    target: edge?.target === undefined ? undefined : asString(edge.target),
-    label: edge?.label === undefined ? undefined : asString(edge.label)
+    id: asBoundedString(edge?.id, 120),
+    source: edge?.source === undefined ? undefined : asBoundedString(edge.source, 96),
+    target: edge?.target === undefined ? undefined : asBoundedString(edge.target, 96),
+    label: edge?.label === undefined ? undefined : asBoundedString(edge.label, 80)
   };
 }
 
@@ -233,33 +268,56 @@ function cleanArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function uniqueBy(items, getKey) {
+  const seen = new Set();
+  const result = [];
+
+  for (const item of items) {
+    const key = getKey(item);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
 function normalizeMindmapPatch(patch) {
   const normalized = Object.fromEntries(PATCH_KEYS.map((key) => [key, []]));
   const source = patch && typeof patch === 'object' ? patch : {};
 
-  normalized.addNodes = cleanArray(source.addNodes)
+  normalized.addNodes = uniqueBy(cleanArray(source.addNodes)
     .map(normalizeNode)
-    .filter((node) => node.id && node.label);
+    .filter((node) => node.id && node.label), (node) => node.id)
+    .slice(0, PATCH_LIMITS.addNodes);
 
-  normalized.updateNodes = cleanArray(source.updateNodes)
+  normalized.updateNodes = uniqueBy(cleanArray(source.updateNodes)
     .map(normalizeNodeUpdate)
-    .filter((node) => node.id);
+    .filter((node) => node.id), (node) => node.id)
+    .slice(0, PATCH_LIMITS.updateNodes);
 
-  normalized.removeNodes = cleanArray(source.removeNodes)
+  normalized.removeNodes = uniqueBy(cleanArray(source.removeNodes)
     .map(normalizeRemoveItem)
-    .filter(Boolean);
+    .filter(Boolean), (id) => id)
+    .slice(0, PATCH_LIMITS.removeNodes);
 
-  normalized.addEdges = cleanArray(source.addEdges)
+  normalized.addEdges = uniqueBy(cleanArray(source.addEdges)
     .map(normalizeEdge)
-    .filter((edge) => edge.id && edge.source && edge.target);
+    .filter((edge) => edge.id && edge.source && edge.target), (edge) => `${edge.source}->${edge.target}`)
+    .slice(0, PATCH_LIMITS.addEdges);
 
-  normalized.updateEdges = cleanArray(source.updateEdges)
+  normalized.updateEdges = uniqueBy(cleanArray(source.updateEdges)
     .map(normalizeEdgeUpdate)
-    .filter((edge) => edge.id);
+    .filter((edge) => edge.id), (edge) => edge.id)
+    .slice(0, PATCH_LIMITS.updateEdges);
 
-  normalized.removeEdges = cleanArray(source.removeEdges)
+  normalized.removeEdges = uniqueBy(cleanArray(source.removeEdges)
     .map(normalizeRemoveItem)
-    .filter(Boolean);
+    .filter(Boolean), (id) => id)
+    .slice(0, PATCH_LIMITS.removeEdges);
 
   return normalized;
 }
