@@ -10,6 +10,7 @@ import mindmapRoutes from './routes/mindmapRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
 
 const PORT = Number(process.env.PORT || 4000);
+const HOST = process.env.HOST || '127.0.0.1';
 
 function buildCorsOptions() {
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173')
@@ -74,10 +75,10 @@ export function createApp() {
   return app;
 }
 
-export function startServer({ port = PORT } = {}) {
+export function startServer({ port = PORT, host = HOST } = {}) {
   const app = createApp();
-  return app.listen(port, () => {
-    console.log(`Backend API listening on http://localhost:${port}`);
+  return app.listen(port, host, () => {
+    console.log(`Backend API listening on http://${host}:${port}`);
   });
 }
 

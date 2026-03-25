@@ -2,10 +2,18 @@ node_modules/
 dist/
 build/
 .env
+.env.*
+!.env.example
 .env.local
 *.log
 
 backend/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
 backend/*.db
 backend/*.db-*
 desktop/artifacts/

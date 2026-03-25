@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+### Security
+
+- Bind the backend to `127.0.0.1` by default for local-first execution.
+- Restrict provider credential and OAuth callback routes to localhost unless explicitly enabled for a trusted private deployment.
+- Add public repository security guidance.
+
 ### Added
 
 - Repository documentation hierarchy under `docs/`.

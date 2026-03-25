@@ -14,6 +14,41 @@ import {
 } from '../services/ollamaRuntimeService.js';
 
 const router = Router();
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+const LOCAL_ADDRESSES = new Set(['127.0.0.1', '::1']);
+
+function normalizeAddress(value) {
+  return String(value || '')
+    .replace(/^::ffff:/, '')
+    .replace(/^\[/, '')
+    .replace(/\]$/, '')
+    .toLowerCase();
+}
+
+function isLocalProviderCredentialRequest(req) {
+  if (process.env.ALLOW_REMOTE_PROVIDER_AUTH === 'true') {
+    return true;
+  }
+
+  const host = normalizeAddress(req.hostname);
+  const remoteAddress = normalizeAddress(req.socket?.remoteAddress || req.ip);
+
+  return LOCAL_HOSTNAMES.has(host) && (!remoteAddress || LOCAL_ADDRESSES.has(remoteAddress));
+}
+
+function requireLocalProviderCredentialRequest(req, res, next) {
+  if (isLocalProviderCredentialRequest(req)) {
+    next();
+    return;
+  }
+
+  res.status(403).json({
+    error: {
+      code: 'LOCAL_PROVIDER_AUTH_REQUIRED',
+      message: 'Provider credential routes are local-only by default. Set ALLOW_REMOTE_PROVIDER_AUTH=true only for a trusted private deployment.'
+    }
+  });
+}
 
 router.get('/', (req, res) => {
   res.json({ providers: listProviders() });
@@ -87,7 +122,7 @@ router.post('/:providerId/test', async (req, res, next) => {
   }
 });
 
-router.post('/:providerId/auth', async (req, res, next) => {
+router.post('/:providerId/auth', requireLocalProviderCredentialRequest, async (req, res, next) => {
   try {
     res.json(await configureProvider(req.params.providerId, req.body));
   } catch (error) {
@@ -95,11 +130,11 @@ router.post('/:providerId/auth', async (req, res, next) => {
   }
 });
 
-router.get('/:providerId/callback', async (req, res, next) => {
+router.get('/:providerId/callback', requireLocalProviderCredentialRequest, async (req, res, next) => {
   try {
     const provider = getProviderOrThrow(req.params.providerId);
     if (typeof provider.handleCallback !== 'function') {
-      return res.status(400).send('해당 Provider는 OAuth 콜백을 지원하지 않습니다.');
+      return res.status(400).send('This provider does not support OAuth callbacks.');
     }
 
     const success = await provider.handleCallback(req.query.code);
@@ -109,16 +144,16 @@ router.get('/:providerId/callback', async (req, res, next) => {
         <html>
           <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #07111f; color: white;">
             <div style="text-align: center; border: 1px solid #22d3ee; padding: 2rem; border-radius: 1rem; background: #0f172a; box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);">
-              <h1 style="color: #22d3ee; margin-top: 0;">인증 성공!</h1>
-              <p>브레인스토밍 앱으로 돌아가셔도 좋습니다.</p>
-              <p style="font-size: 0.8rem; color: #94a3b8;">이제 이 창은 닫으셔도 됩니다.</p>
-              <button onclick="window.close()" style="margin-top: 1rem; padding: 0.6rem 1.2rem; border: none; border-radius: 0.5rem; background: #22d3ee; color: #07111f; cursor: pointer; font-weight: bold; transition: opacity 0.2s;">창 닫기</button>
+              <h1 style="color: #22d3ee; margin-top: 0;">Authentication complete</h1>
+              <p>You can return to Role AI Brainstorm Workspace.</p>
+              <p style="font-size: 0.8rem; color: #94a3b8;">This window can be closed.</p>
+              <button onclick="window.close()" style="margin-top: 1rem; padding: 0.6rem 1.2rem; border: none; border-radius: 0.5rem; background: #22d3ee; color: #07111f; cursor: pointer; font-weight: bold; transition: opacity 0.2s;">Close</button>
             </div>
           </body>
         </html>
       `);
     } else {
-      res.status(400).send('인증에 실패했습니다. 코드가 유효하지 않거나 취소되었습니다.');
+      res.status(400).send('Authentication failed. The authorization code is invalid or the flow was cancelled.');
     }
   } catch (error) {
     next(error);

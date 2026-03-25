@@ -7,10 +7,20 @@ The current deployment target is a Windows desktop installer built with Electron
 The Electron main process:
 
 - starts the Express app in-process
+- binds the local backend to `127.0.0.1`
 - sets `PORT` for the local backend
 - sets `DB_FILE` to Electron `userData` when not explicitly provided
 - loads the built React renderer from `frontend/dist`
 - exposes the API base URL and safe window/shell actions through the preload bridge
+
+## Public Repository Safety
+
+The repository is safe to publish as source code, but the backend is not intended to be deployed as an unauthenticated public API.
+
+- Keep `.env`, local SQLite databases, logs, and packaged installers out of git.
+- Keep `HOST=127.0.0.1` for local use.
+- Leave `ALLOW_REMOTE_PROVIDER_AUTH=false` unless the API is protected by trusted private network controls.
+- Do not expose provider credential or chat routes on the public internet with personal API keys configured.
 
 ## Build Commands
 

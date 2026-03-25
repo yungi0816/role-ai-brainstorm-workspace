@@ -12,6 +12,7 @@ const frontendIndexPath = process.env.DESKTOP_RENDERER_INDEX
   || path.join(runtimeRoot, 'frontend', 'dist', 'index.html');
 
 const BACKEND_PORT = Number(process.env.DESKTOP_BACKEND_PORT || 4000);
+const BACKEND_HOST = '127.0.0.1';
 const API_BASE_URL = `http://localhost:${BACKEND_PORT}/api`;
 const COLLAPSED_WINDOW = { width: 460, height: 720 };
 const EXPANDED_WINDOW = { width: 1180, height: 860 };
@@ -59,6 +60,7 @@ async function ensureBackend() {
 
   process.env.NODE_ENV = 'desktop';
   process.env.PORT = String(BACKEND_PORT);
+  process.env.HOST = BACKEND_HOST;
   process.env.DB_FILE = dbFile;
   process.env.CORS_ORIGIN = '*';
 
@@ -66,7 +68,7 @@ async function ensureBackend() {
   const backendApp = backendModule.createApp();
 
   backendServer = await new Promise((resolve, reject) => {
-    const server = backendApp.listen(BACKEND_PORT, () => {
+    const server = backendApp.listen(BACKEND_PORT, BACKEND_HOST, () => {
       console.log(`Desktop backend listening on ${API_BASE_URL}`);
       resolve(server);
     });

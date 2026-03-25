@@ -14,6 +14,7 @@ The project began as a web MVP and is now moving toward packaged Windows desktop
 | Database | [docs/database/README.md](docs/database/README.md) |
 | Desktop Packaging | [docs/deployment/README.md](docs/deployment/README.md) |
 | Development Workflow | [docs/workflow/README.md](docs/workflow/README.md) |
+| Security | [SECURITY.md](SECURITY.md) |
 | Roadmap and Phase Log | [docs/roadmap/README.md](docs/roadmap/README.md) |
 | Architecture Decisions | [docs/adr/README.md](docs/adr/README.md) |
 
@@ -121,13 +122,21 @@ Packaging details are documented in [docs/deployment/README.md](docs/deployment/
 
 | Variable | Required | Description |
 | --- | --- | --- |
+| `HOST` | No | Backend bind host. Defaults to `127.0.0.1` to keep the API local by default. |
 | `PORT` | No | Backend API port. Defaults to `4000`. |
 | `DB_FILE` | No | SQLite database path. Desktop runtime defaults to Electron `userData`. |
 | `CORS_ORIGIN` | No | Comma-separated allowed origins for standalone backend mode. |
 | `OLLAMA_HOST` | No | Ollama HTTP endpoint. Defaults to `http://localhost:11434`. |
 | `OPENAI_API_KEY` | For OpenAI | Enables future OpenAI provider execution. |
+| `ALLOW_REMOTE_PROVIDER_AUTH` | No | Keep `false` unless provider credential routes are behind trusted private access. |
 | `ANTIGRAVITY_CLI_COMMAND` | No | Antigravity CLI executable name. Defaults to `agy`. |
 | `VITE_API_BASE_URL` | Frontend dev only | API base URL for Vite development mode. |
+
+## Public Safety Notes
+
+- The backend binds to `127.0.0.1` by default and is designed for local desktop use.
+- `.env`, local SQLite databases, logs, and packaged installers are ignored by git.
+- Provider credential routes are localhost-only by default. Do not enable remote credential configuration on an internet-facing server.
 
 ## Verification
 

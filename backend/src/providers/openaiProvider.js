@@ -57,8 +57,8 @@ export class OpenAIProvider extends BaseProvider {
       auth: {
         type: 'api_key',
         label: 'OpenAI API Key',
-        placeholder: 'sk-...',
-        helpText: 'API Key는 백엔드 프로세스 메모리에만 보관되고 프론트에 다시 노출되지 않습니다.'
+        placeholder: 'OpenAI API key',
+        helpText: 'The API key is kept only in backend process memory and is not persisted to the frontend.'
       }
     });
 
