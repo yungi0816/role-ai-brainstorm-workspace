@@ -156,4 +156,4 @@ Start with [docs/README.md](docs/README.md). Deep technical details are intentio
 
 ## License
 
-No repository license has been committed yet.
+This project is licensed under the [MIT License](LICENSE).
