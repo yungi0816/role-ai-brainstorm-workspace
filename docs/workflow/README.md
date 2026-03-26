@@ -44,6 +44,13 @@ npm start
 
 ## Verification
 
+Backend API smoke test:
+
+```bash
+cd backend
+npm run smoke
+```
+
 Frontend build:
 
 ```bash
@@ -64,6 +71,16 @@ Desktop installer build:
 cd desktop
 npm run dist
 ```
+
+## Continuous Integration
+
+GitHub Actions runs `.github/workflows/ci.yml` on pushes and pull requests to `main`.
+
+| CI check | Purpose |
+| --- | --- |
+| Backend API smoke test | Starts the Express app with a temporary SQLite database and verifies `/api/health` plus provider registration. |
+| Frontend production build | Confirms the Vite/React renderer compiles. |
+| Desktop smoke test | Builds the renderer and starts the Electron shell backend in a headless display session. |
 
 ## Commit Discipline
 

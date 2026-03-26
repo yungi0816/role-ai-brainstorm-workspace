@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            desktop/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install desktop dependencies
+        run: npm ci
+        working-directory: desktop
+
+      - name: Backend API smoke test
+        run: npm run smoke
+        working-directory: backend
+
+      - name: Frontend production build
+        run: npm run build
+        working-directory: frontend
+
+      - name: Install headless desktop runtime
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Desktop smoke test
+        run: xvfb-run --auto-servernum npm run smoke
+        working-directory: desktop
+        env:
+          DESKTOP_BACKEND_PORT: 4100

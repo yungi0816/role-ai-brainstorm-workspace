@@ -1,5 +1,7 @@
 # Role AI Brainstorm Workspace
 
+[![CI](https://github.com/yungi0816/role-ai-brainstorm-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/yungi0816/role-ai-brainstorm-workspace/actions/workflows/ci.yml)
+
 Role AI Brainstorm Workspace is a desktop-first brainstorming tool that combines a compact chat interface, role-based AI responses, and an incrementally updated mind map.
 
 The project began as a web MVP and is now moving toward packaged Windows desktop software. The frontend and backend remain independently runnable for development, while the Electron shell is the target user runtime.
@@ -139,6 +141,19 @@ Packaging details are documented in [docs/deployment/README.md](docs/deployment/
 - Provider credential routes are localhost-only by default. Do not enable remote credential configuration on an internet-facing server.
 
 ## Verification
+
+GitHub Actions runs the same core checks on pushes and pull requests to `main`.
+
+| Check | Command |
+| --- | --- |
+| Backend API smoke test | `cd backend && npm run smoke` |
+| Frontend production build | `cd frontend && npm run build` |
+| Desktop smoke test | `cd desktop && npm run smoke` |
+
+```bash
+cd backend
+npm run smoke
+```
 
 ```bash
 cd frontend

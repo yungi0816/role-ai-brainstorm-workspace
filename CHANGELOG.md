@@ -12,6 +12,8 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- GitHub Actions CI for backend API smoke, frontend build, and desktop smoke verification.
+- Backend API smoke script for health and provider registration checks.
 - Repository documentation hierarchy under `docs/`.
 - Documentation index, architecture overview, API reference, database notes, deployment notes, workflow guide, roadmap, and ADR index.
 
