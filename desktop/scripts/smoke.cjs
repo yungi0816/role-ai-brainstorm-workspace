@@ -1,7 +1,11 @@
 const { spawn } = require('node:child_process');
 const electronPath = require('electron');
 
-const child = spawn(electronPath, ['.'], {
+const electronArgs = process.platform === 'linux' && process.env.CI === 'true'
+  ? ['--no-sandbox', '.']
+  : ['.'];
+
+const child = spawn(electronPath, electronArgs, {
   cwd: __dirname + '/..',
   env: {
     ...process.env,

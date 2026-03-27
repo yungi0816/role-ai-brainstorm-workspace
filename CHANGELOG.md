@@ -10,6 +10,10 @@ All notable changes to this project are documented here.
 - Restrict provider credential and OAuth callback routes to localhost unless explicitly enabled for a trusted private deployment.
 - Add public repository security guidance.
 
+### Fixed
+
+- Run Electron desktop smoke checks without the Chromium sandbox on Linux CI runners.
+
 ### Added
 
 - GitHub Actions CI for backend API smoke, frontend build, and desktop smoke verification.
