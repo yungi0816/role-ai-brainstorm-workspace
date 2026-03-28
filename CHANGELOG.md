@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+### Changed
+
+- Rewrite the Korean README with a more personal project narrative, current-state notes, and implementation tradeoffs.
+
 ### Security
 
 - Bind the backend to `127.0.0.1` by default for local-first execution.
