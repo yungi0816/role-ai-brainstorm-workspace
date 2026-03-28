@@ -2,81 +2,88 @@
 
 [![CI](https://github.com/yungi0816/role-ai-brainstorm-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/yungi0816/role-ai-brainstorm-workspace/actions/workflows/ci.yml)
 
-Role AI Brainstorm Workspace is a desktop-first brainstorming tool that combines a compact chat interface, role-based AI responses, and an incrementally updated mind map.
+[English README](README_ENG.md)
 
-The project began as a web MVP and is now moving toward packaged Windows desktop software. The frontend and backend remain independently runnable for development, while the Electron shell is the target user runtime.
+역할 기반 AI 브레인스토밍 워크스페이스는 채팅 UI, 다중 역할 AI 의견, 누적 마인드맵을 결합한 데스크톱 중심 아이디어 정리 도구입니다. 사용자가 기획 주제나 과제를 입력하면 아이디어 뱅크, 비판가, 검토자, 구현 설계자, 정리자 관점의 응답을 공통 JSON 구조로 정규화하고, 그 결과를 채팅과 마인드맵에 동시에 반영합니다.
 
-## Navigation
+이 프로젝트는 단순히 AI 응답을 화면에 출력하는 데모가 아니라, Provider 추상화, JSON 정규화, 마인드맵 patch 저장, 로컬 데스크톱 패키징, 공개 레포 기준 보안/CI까지 포함한 풀스택 포트폴리오 프로젝트입니다.
 
-| Area | Document |
+## 프로젝트 요약
+
+| 항목 | 내용 |
 | --- | --- |
-| Documentation Index | [docs/README.md](docs/README.md) |
-| Architecture | [docs/architecture/README.md](docs/architecture/README.md) |
-| API | [docs/api/README.md](docs/api/README.md) |
-| Database | [docs/database/README.md](docs/database/README.md) |
-| Desktop Packaging | [docs/deployment/README.md](docs/deployment/README.md) |
-| Development Workflow | [docs/workflow/README.md](docs/workflow/README.md) |
-| Security | [SECURITY.md](SECURITY.md) |
-| Roadmap and Phase Log | [docs/roadmap/README.md](docs/roadmap/README.md) |
-| Architecture Decisions | [docs/adr/README.md](docs/adr/README.md) |
+| 문제 정의 | 브레인스토밍 결과가 채팅에만 남으면 구조화와 후속 질문이 어렵다. |
+| 해결 방향 | 역할별 AI 의견을 공통 응답 구조로 정규화하고, 마인드맵을 patch 방식으로 누적 업데이트한다. |
+| 실행 형태 | React/Vite 프론트엔드와 Express/SQLite 백엔드를 Electron 데스크톱 앱으로 패키징한다. |
+| 주요 Provider | Ollama Local, Antigravity CLI, OpenAI API Key 기반 Provider, Copilot Stub |
+| 현재 상태 | 로컬 데스크톱 MVP, Windows installer 빌드, GitHub Actions smoke 검증 구성 |
 
-## Core Capabilities
+## 핵심 기능
 
-| Capability | Description | Status |
+| 기능 | 설명 | 상태 |
 | --- | --- | --- |
-| Chat-first desktop shell | Electron opens as a compact chat window with custom minimize and close controls. | Implemented |
-| Role-based brainstorming | AI output is normalized into opinions from idea bank, critic, reviewer, implementation designer, and summarizer roles. | Implemented |
-| Mind map patching | AI responses update the stored mind map incrementally instead of regenerating it. | Implemented |
-| Node follow-up questions | Selected mind map nodes can be used as follow-up context for additional AI turns. | Implemented |
-| Ollama runtime checks | The app detects Ollama install, server connection, local models, and offers download/model pull actions. | Implemented |
-| Antigravity CLI provider | Child-process provider interface runs Antigravity CLI through `agy` and keeps a legacy `gemini-cli` alias for existing conversations. | Basic implementation |
-| OpenAI provider | API-key-gated provider shell exists. | Planned implementation |
-| GitHub Copilot provider | Provider contract exists for future OAuth/SDK integration. | Stub |
+| 채팅 기반 워크스페이스 | 카카오톡처럼 주제를 입력하고 AI 응답을 대화 흐름으로 확인 | 구현 |
+| 역할 기반 브레인스토밍 | 아이디어 뱅크, 비판가, 검토자, 구현 설계자, 정리자 의견 생성 | 구현 |
+| 공통 JSON 응답 계약 | Provider별 응답을 `chatResponse`, `agentOpinions`, `mindmapPatch`로 정규화 | 구현 |
+| 누적 마인드맵 | 전체 재생성이 아니라 add/update/remove patch로 노드와 엣지 저장 | 구현 |
+| 노드 후속 질문 | 마인드맵 노드를 선택하고 해당 노드 기준으로 추가 질문 | 구현 |
+| Ollama 런타임 진단 | 설치 여부, 서버 실행, `localhost:11434` 연결, 모델 목록 확인 | 구현 |
+| Provider 설정/진단 | Provider 준비 상태와 인증 필요 상태를 UI에서 확인 | 구현 |
+| 데스크톱 패키징 | Electron shell과 Windows NSIS installer 구성 | 구현 |
+| CI 검증 | backend smoke, frontend build, desktop smoke GitHub Actions 구성 | 구현 |
 
-## Architecture Overview
+## 기술 스택
+
+| 영역 | 기술 |
+| --- | --- |
+| Desktop | Electron, electron-builder |
+| Frontend | React, Vite, Tailwind CSS, React Flow, Axios |
+| Backend | Node.js, Express, dotenv, child_process |
+| Database | SQLite, Node `node:sqlite` |
+| AI Provider | Ollama Local, Antigravity CLI, OpenAI, Copilot Stub |
+| Quality | GitHub Actions, backend smoke test, desktop smoke test |
+
+## 아키텍처
 
 ```mermaid
 flowchart LR
-    User["Desktop User"] --> Electron["Electron Shell"]
+    User["사용자"] --> Electron["Electron Desktop Shell"]
     Electron --> React["React Renderer"]
     React --> API["Express API"]
-    API --> Services["AI, Conversation, Mind Map Services"]
-    Services --> SQLite["SQLite Database"]
-    Services --> Providers["AI Providers"]
+    API --> Services["AI / Conversation / Mindmap Services"]
+    Services --> SQLite["SQLite"]
+    Services --> Providers["Provider Layer"]
     Providers --> Ollama["Ollama Local"]
     Providers --> Antigravity["Antigravity CLI"]
     Providers --> OpenAI["OpenAI GPT"]
     Providers --> Copilot["Copilot Stub"]
 ```
 
-The desktop shell starts the Express backend in-process, stores the SQLite database under Electron `userData` by default, and loads the built React renderer. See [docs/architecture/README.md](docs/architecture/README.md) for subsystem boundaries and data flow.
+상세 구조와 데이터 흐름은 [docs/architecture/README.md](docs/architecture/README.md)에 정리했습니다.
 
-## Technology Stack
+## My Key Contributions
 
-| Layer | Technologies |
-| --- | --- |
-| Desktop Runtime | Electron, electron-builder |
-| Frontend | React, Vite, Tailwind CSS, React Flow, Axios |
-| Backend | Node.js, Express, dotenv, child_process |
-| Persistence | SQLite through Node `node:sqlite` |
-| AI Providers | Ollama Local, Antigravity CLI, OpenAI shell, Copilot stub |
+- Provider가 달라도 프론트엔드는 동일한 응답 계약만 사용하도록 `BaseProvider`와 `aiRouterService`를 설계했습니다.
+- AI 응답을 그대로 렌더링하지 않고 JSON 파싱, repair prompt, fallback parser, schema-level normalization을 거치도록 구성했습니다.
+- 마인드맵을 전체 재생성하지 않고 patch 방식으로 누적 저장하도록 `mindmapPatchService`를 구현했습니다.
+- root 노드 보호, 중복 라벨 병합, self/cross edge 차단, 순환 parent 방지 등 AI 출력의 불안정성을 DB 저장 단계에서 방어했습니다.
+- Ollama를 앱에 내장하지 않고 설치/서버/연결/모델 상태를 진단하는 로컬 런타임 관리 방식으로 설계했습니다.
+- Electron 데스크톱 shell에서 backend와 renderer를 함께 실행하고, 사용자 데이터 경로에 SQLite를 저장하도록 구성했습니다.
+- 공개 레포 전환을 위해 MIT License, SECURITY 문서, secret scanning, CI smoke test를 정리했습니다.
 
-## Repository Structure
+## Troubleshooting
 
-```text
-.
-|-- backend/     Express API, providers, services, SQLite schema
-|-- desktop/     Electron shell, preload bridge, packaging configuration
-|-- frontend/    React renderer, UI components, API client
-|-- docs/        Architecture, API, database, deployment, workflow, roadmap, ADRs
-|-- README.md    Executive overview and documentation navigation
-|-- CHANGELOG.md
-`-- CONTRIBUTING.md
-```
+| 문제 | 원인 | 해결 |
+| --- | --- | --- |
+| AI 응답 JSON 파싱 실패 | Provider가 설명 문장이나 markdown fence를 함께 반환 | JSON repair prompt와 fallback parser로 공통 구조 복구 |
+| 마인드맵이 한 줄로 뻗거나 중복 노드 생성 | AI가 parentId를 누락하거나 같은 의미의 노드를 반복 생성 | root 기준 reparent, 중복 label 병합, tree edge 검증 추가 |
+| Ollama 연결 실패 | 사용자의 PC에 Ollama가 없거나 서버가 실행되지 않음 | 설치 여부, 프로세스, `/api/version`, 모델 목록을 단계별로 진단 |
+| OpenAI/Copilot 미설정 오류 | 인증 정보가 없는 Provider가 선택됨 | Provider metadata에 `needs_auth`, `planned`, diagnostics 상태를 노출 |
+| GitHub Actions Electron smoke 실패 | Linux runner의 Chromium sandbox 권한 문제 | CI 환경에서만 Electron을 `--no-sandbox`로 실행 |
 
-## Quick Start
+## 실행 방법
 
-Install dependencies per package:
+패키지별 의존성을 설치합니다.
 
 ```bash
 cd backend && npm install
@@ -84,14 +91,14 @@ cd ../frontend && npm install
 cd ../desktop && npm install
 ```
 
-Run the desktop app:
+데스크톱 앱을 실행합니다.
 
 ```bash
 cd desktop
 npm start
 ```
 
-Run backend and frontend separately for development:
+웹 개발 모드로 분리 실행할 수도 있습니다.
 
 ```bash
 cd backend
@@ -103,48 +110,40 @@ cd frontend
 npm run dev
 ```
 
-## Desktop Build
+## 데스크톱 빌드
 
-Create a Windows installer:
+Windows installer를 생성합니다.
 
 ```bash
 cd desktop
 npm run dist
 ```
 
-Installer output:
+생성 위치:
 
 ```text
 desktop/artifacts/Role AI Brainstorm Workspace Setup 0.1.0.exe
 ```
 
-Packaging details are documented in [docs/deployment/README.md](docs/deployment/README.md).
+## 환경 변수
 
-## Environment
-
-| Variable | Required | Description |
+| 변수 | 필수 여부 | 설명 |
 | --- | --- | --- |
-| `HOST` | No | Backend bind host. Defaults to `127.0.0.1` to keep the API local by default. |
-| `PORT` | No | Backend API port. Defaults to `4000`. |
-| `DB_FILE` | No | SQLite database path. Desktop runtime defaults to Electron `userData`. |
-| `CORS_ORIGIN` | No | Comma-separated allowed origins for standalone backend mode. |
-| `OLLAMA_HOST` | No | Ollama HTTP endpoint. Defaults to `http://localhost:11434`. |
-| `OPENAI_API_KEY` | For OpenAI | Enables future OpenAI provider execution. |
-| `ALLOW_REMOTE_PROVIDER_AUTH` | No | Keep `false` unless provider credential routes are behind trusted private access. |
-| `ANTIGRAVITY_CLI_COMMAND` | No | Antigravity CLI executable name. Defaults to `agy`. |
-| `VITE_API_BASE_URL` | Frontend dev only | API base URL for Vite development mode. |
+| `HOST` | 아니오 | Backend bind host. 기본값은 `127.0.0.1` |
+| `PORT` | 아니오 | Backend API port. 기본값은 `4000` |
+| `DB_FILE` | 아니오 | SQLite DB 경로. Desktop runtime은 Electron `userData` 사용 |
+| `CORS_ORIGIN` | 아니오 | standalone backend mode에서 허용할 origin |
+| `OLLAMA_HOST` | 아니오 | Ollama endpoint. 기본값은 `http://localhost:11434` |
+| `OPENAI_API_KEY` | OpenAI 사용 시 | OpenAI Provider 실행에 사용 |
+| `ALLOW_REMOTE_PROVIDER_AUTH` | 아니오 | Provider credential route 원격 허용 여부. 기본값은 `false` 권장 |
+| `ANTIGRAVITY_CLI_COMMAND` | 아니오 | Antigravity CLI 실행 명령. 기본값은 `agy` |
+| `VITE_API_BASE_URL` | frontend dev only | Vite 개발 모드 API base URL |
 
-## Public Safety Notes
+## 검증
 
-- The backend binds to `127.0.0.1` by default and is designed for local desktop use.
-- `.env`, local SQLite databases, logs, and packaged installers are ignored by git.
-- Provider credential routes are localhost-only by default. Do not enable remote credential configuration on an internet-facing server.
+GitHub Actions는 `main` push와 pull request에서 아래 검증을 수행합니다.
 
-## Verification
-
-GitHub Actions runs the same core checks on pushes and pull requests to `main`.
-
-| Check | Command |
+| 검증 | 명령 |
 | --- | --- |
 | Backend API smoke test | `cd backend && npm run smoke` |
 | Frontend production build | `cd frontend && npm run build` |
@@ -165,10 +164,27 @@ cd desktop
 npm run smoke
 ```
 
-## Documentation
+## 문서
 
-Start with [docs/README.md](docs/README.md). Deep technical details are intentionally kept out of this README so future maintainers can navigate by subsystem.
+| 영역 | 문서 |
+| --- | --- |
+| English README | [README_ENG.md](README_ENG.md) |
+| Documentation Index | [docs/README.md](docs/README.md) |
+| Architecture | [docs/architecture/README.md](docs/architecture/README.md) |
+| API | [docs/api/README.md](docs/api/README.md) |
+| Database | [docs/database/README.md](docs/database/README.md) |
+| Desktop Packaging | [docs/deployment/README.md](docs/deployment/README.md) |
+| Development Workflow | [docs/workflow/README.md](docs/workflow/README.md) |
+| Security | [SECURITY.md](SECURITY.md) |
+| Roadmap | [docs/roadmap/README.md](docs/roadmap/README.md) |
 
-## License
+## 공개 레포 안전 기준
 
-This project is licensed under the [MIT License](LICENSE).
+- Backend는 기본적으로 `127.0.0.1`에 bind됩니다.
+- `.env`, local SQLite DB, log, installer artifact는 git에 포함하지 않습니다.
+- Provider credential route는 기본적으로 localhost 요청만 허용합니다.
+- 개인 API key를 설정한 상태로 public internet에 backend를 노출하지 않는 것을 전제로 합니다.
+
+## 라이선스
+
+이 프로젝트는 [MIT License](LICENSE)를 따릅니다.

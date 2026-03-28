@@ -16,6 +16,8 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Korean-first root README with English README preserved as `README_ENG.md`.
+- Portfolio-focused key contributions and troubleshooting sections.
 - GitHub Actions CI for backend API smoke, frontend build, and desktop smoke verification.
 - Backend API smoke script for health and provider registration checks.
 - Repository documentation hierarchy under `docs/`.
