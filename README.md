@@ -10,6 +10,10 @@
 
 아직 완성형 제품이라기보다는 로컬에서 브레인스토밍 흐름을 실험해보는 MVP에 가깝습니다.
 
+## 실행 화면
+
+![Role AI Brainstorm Workspace 실행 화면](docs/assets/workspace-screenshot.png)
+
 ## 왜 만들었나
 
 - AI 답변을 채팅창에만 남기면 다시 이어서 생각하기가 어렵다.
@@ -32,7 +36,7 @@
 
 ## 아직 부족한 점
 
-- 실제 사용 흐름을 보여주는 GIF가 아직 없습니다.
+- 실제 사용 흐름을 보여주는 짧은 GIF는 아직 없습니다.
 - OpenAI와 Antigravity CLI Provider는 동작 경로를 잡아두었지만, 계정/CLI 환경마다 더 많은 검증이 필요합니다.
 - Copilot Provider는 나중에 OAuth나 SDK를 붙일 수 있도록 stub만 둔 상태입니다.
 - installer 서명, 자동 업데이트, 배포 채널은 아직 없습니다.

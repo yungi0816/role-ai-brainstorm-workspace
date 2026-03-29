@@ -7,6 +7,7 @@ All notable changes to this project are documented here.
 ### Changed
 
 - Rewrite the Korean README with a more personal project narrative, current-state notes, and implementation tradeoffs.
+- Add a real workspace screenshot to the root README.
 
 ### Security
 
