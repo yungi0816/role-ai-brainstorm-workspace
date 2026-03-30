@@ -8,6 +8,7 @@ All notable changes to this project are documented here.
 
 - Rewrite the Korean README with a more personal project narrative, current-state notes, and implementation tradeoffs.
 - Add a real workspace screenshot to the root README.
+- Upgrade GitHub Actions workflow actions to the Node 24-ready v6 generation.
 
 ### Security
 
