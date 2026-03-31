@@ -19,8 +19,8 @@ function listen(app) {
   });
 }
 
-async function fetchJson(baseUrl, pathname) {
-  const response = await fetch(`${baseUrl}${pathname}`);
+async function fetchJson(baseUrl, pathname, options) {
+  const response = await fetch(`${baseUrl}${pathname}`, options);
   const payload = await response.json();
 
   if (!response.ok) {
@@ -54,9 +54,31 @@ try {
     }
   }
 
+  const created = await fetchJson(baseUrl, '/conversations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      provider: 'ollama',
+      model: 'gemma3:1b',
+      title: 'Smoke export'
+    })
+  });
+
+  const exportPayload = await fetchJson(
+    baseUrl,
+    `/conversations/${created.conversation.id}/export?format=markdown`
+  );
+  if (
+    exportPayload.format !== 'markdown' ||
+    !exportPayload.filename.endsWith('.md') ||
+    !exportPayload.content.includes('# Smoke export')
+  ) {
+    throw new Error(`Unexpected export payload: ${JSON.stringify(exportPayload)}`);
+  }
+
   console.log(JSON.stringify({
     ok: true,
-    checks: ['health', 'providers'],
+    checks: ['health', 'providers', 'conversation-export'],
     providerCount: providerIds.size
   }));
 } finally {

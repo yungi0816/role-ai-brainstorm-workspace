@@ -5,6 +5,7 @@ import {
   listConversations,
   deleteConversation
 } from '../services/conversationService.js';
+import { buildConversationExport } from '../services/conversationExportService.js';
 
 const router = Router();
 
@@ -22,6 +23,24 @@ router.post('/', (req, res) => {
   });
 
   res.status(201).json({ conversation });
+});
+
+router.get('/:conversationId/export', (req, res) => {
+  const payload = buildConversationExport(
+    req.params.conversationId,
+    String(req.query.format || 'markdown').toLowerCase()
+  );
+
+  if (!payload) {
+    return res.status(404).json({
+      error: {
+        code: 'CONVERSATION_NOT_FOUND',
+        message: 'Conversation not found.'
+      }
+    });
+  }
+
+  return res.json(payload);
 });
 
 router.get('/:conversationId', (req, res) => {

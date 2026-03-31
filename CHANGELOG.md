@@ -22,6 +22,9 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Conversation export API for Markdown/JSON reports.
+- Frontend Markdown download action for saved conversations.
+- Korean portfolio case study with contribution summary and next feature candidates.
 - Korean-first root README with English README preserved as `README_ENG.md`.
 - Portfolio-focused key contributions and troubleshooting sections.
 - GitHub Actions CI for backend API smoke, frontend build, and desktop smoke verification.

@@ -11,6 +11,7 @@ This directory contains durable repository documentation for Role AI Brainstorm 
 | [Database](database/README.md) | SQLite schema, persistence ownership, and state relationships. |
 | [Deployment](deployment/README.md) | Desktop packaging, installer output, and runtime storage behavior. |
 | [Workflow](workflow/README.md) | Local development, verification, commit, and release expectations. |
+| [Portfolio Case Study](portfolio/README.md) | Korean project narrative, contribution summary, interview points, and next feature candidates. |
 | [Security](../SECURITY.md) | Public repository safety posture and responsible reporting guidance. |
 | [Roadmap](roadmap/README.md) | Phase log, implemented milestones, and planned work. |
 | [ADRs](adr/README.md) | Architecture decision records for consequential choices. |

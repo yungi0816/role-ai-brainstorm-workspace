@@ -73,6 +73,54 @@ Request:
 
 Failure categories include `not_installed`, `authentication`, `permission`, `timeout`, `json_response`, and `execution`.
 
+## Conversations
+
+### `GET /api/conversations`
+
+Returns saved conversations ordered by last update time.
+
+### `GET /api/conversations/:conversationId`
+
+Returns a conversation snapshot with messages, role opinions attached to assistant messages, and the current mind map.
+
+### `GET /api/conversations/:conversationId/export`
+
+Exports a saved conversation as Markdown or JSON. The route is read-only and does not call an AI provider.
+
+Query:
+
+| Parameter | Values | Default |
+| --- | --- | --- |
+| `format` | `markdown`, `json` | `markdown` |
+
+Markdown response:
+
+```json
+{
+  "format": "markdown",
+  "filename": "role-ai-brainstorm-workspace.md",
+  "content": "# Role AI Brainstorm Workspace\n\n..."
+}
+```
+
+JSON response:
+
+```json
+{
+  "format": "json",
+  "filename": "role-ai-brainstorm-workspace.json",
+  "content": {
+    "exportedAt": "2026-05-21T00:00:00.000Z",
+    "conversation": {},
+    "messages": [],
+    "mindmap": {
+      "nodes": [],
+      "edges": []
+    }
+  }
+}
+```
+
 ## Ollama
 
 ### `GET /api/providers/ollama/status`

@@ -1,4 +1,4 @@
-import { Globe2, MessageCircle, Plus, Send, Settings, Trash2 } from 'lucide-react';
+import { Download, Globe2, MessageCircle, Plus, Send, Settings, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
@@ -57,6 +57,7 @@ export default function ChatPanel({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  onExportConversation,
   canSend,
   sendBlockedReason
 }) {
@@ -146,6 +147,16 @@ export default function ChatPanel({
           aria-label="New chat"
         >
           <Plus size={16} />
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
+          onClick={onExportConversation}
+          title="Export conversation"
+          aria-label="Export conversation"
+          disabled={!conversationId || conversationId === 'new' || isSending}
+        >
+          <Download size={16} />
         </button>
         {conversationId && conversationId !== 'new' && (
           <button

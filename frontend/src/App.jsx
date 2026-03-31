@@ -6,6 +6,7 @@ import SettingsPanel from './components/SettingsPanel.jsx';
 import {
   authenticateProvider,
   deleteConversation,
+  exportConversation,
   fetchConversation,
   fetchConversations,
   fetchProviderModels,
@@ -300,6 +301,33 @@ export default function App() {
     }
   }
 
+  async function handleExportConversation() {
+    if (!state.conversationId || state.isSending) {
+      return;
+    }
+
+    try {
+      const result = await exportConversation(state.conversationId, 'markdown');
+      const content = typeof result.content === 'string'
+        ? result.content
+        : JSON.stringify(result.content, null, 2);
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename || 'conversation-export.md';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+    }
+  }
+
   function handleNewChat() {
     setInput('');
     setState((current) => ({
@@ -531,6 +559,7 @@ export default function App() {
             onNewChat={handleNewChat}
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={handleDeleteConversation}
+            onExportConversation={handleExportConversation}
             canSend={canSend}
             sendBlockedReason={sendBlockedReason}
           />
