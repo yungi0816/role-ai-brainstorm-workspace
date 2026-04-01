@@ -80,3 +80,8 @@ export async function sendNodeQuestion(payload) {
   const { data } = await api.post('/mindmap/node-question', payload);
   return data;
 }
+
+export async function updateMindmapNode(conversationId, nodeId, payload) {
+  const { data } = await api.patch(`/mindmap/${conversationId}/nodes/${nodeId}`, payload);
+  return data;
+}

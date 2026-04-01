@@ -12,7 +12,8 @@ import {
   fetchProviderModels,
   fetchProviders,
   sendChatMessage,
-  sendNodeQuestion
+  sendNodeQuestion,
+  updateMindmapNode
 } from './api/chatApi.js';
 import {
   createErrorMessage,
@@ -508,6 +509,30 @@ export default function App() {
     }
   }
 
+  async function handleUpdateMindmapNode(nodeId, payload) {
+    if (!state.conversationId || !nodeId || state.isSending) {
+      return;
+    }
+
+    try {
+      const response = await updateMindmapNode(state.conversationId, nodeId, payload);
+      setState((current) => ({
+        ...current,
+        mindmap: response.mindmap || current.mindmap,
+        selectedNode: response.node || current.selectedNode,
+        error: null
+      }));
+      await loadConversations();
+      return true;
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.response?.data?.error?.message || error.message
+      }));
+      return false;
+    }
+  }
+
   return (
     <div className="relative h-screen min-h-0 overflow-hidden bg-[#07111f] text-slate-100">
       <div className="workspace-stage absolute inset-0" />
@@ -525,6 +550,7 @@ export default function App() {
             selectedNode={state.selectedNode}
             onSelectNode={(node) => setState((current) => ({ ...current, selectedNode: node }))}
             onAskNodeQuestion={handleNodeQuestion}
+            onUpdateNode={handleUpdateMindmapNode}
             isSending={state.isSending}
           />
         </div>

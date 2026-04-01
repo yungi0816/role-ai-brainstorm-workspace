@@ -15,6 +15,7 @@ import {
   applyMindmapPatch,
   ensureRootMindmapNode
 } from '../services/mindmapPatchService.js';
+import { MINDMAP_NODE_TYPES } from '../providers/baseProvider.js';
 
 const router = Router();
 
@@ -32,6 +33,84 @@ router.get('/:conversationId', (req, res) => {
   return res.json({
     conversationId: conversation.id,
     mindmap: getMindmap(conversation.id)
+  });
+});
+
+router.patch('/:conversationId/nodes/:nodeId', (req, res) => {
+  const { conversationId, nodeId } = req.params;
+  const conversation = getConversation(conversationId);
+  if (!conversation) {
+    return res.status(404).json({
+      error: {
+        code: 'CONVERSATION_NOT_FOUND',
+        message: 'Conversation not found.'
+      }
+    });
+  }
+
+  const existingNode = getMindmapNode(conversation.id, nodeId);
+  if (!existingNode) {
+    return res.status(404).json({
+      error: {
+        code: 'MINDMAP_NODE_NOT_FOUND',
+        message: 'Mind map node not found.'
+      }
+    });
+  }
+
+  const label = String(req.body?.label || '').trim();
+  const type = String(req.body?.type || existingNode.type).trim();
+  const description = String(req.body?.description || '').trim();
+  const parentId = req.body?.parentId === '' ? null : req.body?.parentId ?? existingNode.parent_id;
+
+  if (!label) {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_MINDMAP_NODE',
+        message: 'label is required.'
+      }
+    });
+  }
+
+  if (!MINDMAP_NODE_TYPES.includes(type)) {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_MINDMAP_NODE_TYPE',
+        message: `type must be one of ${MINDMAP_NODE_TYPES.join(', ')}.`
+      }
+    });
+  }
+
+  if (parentId && !getMindmapNode(conversation.id, parentId)) {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_MINDMAP_NODE_PARENT',
+        message: 'parentId must point to an existing node in the conversation.'
+      }
+    });
+  }
+
+  const patchResult = applyMindmapPatch({
+    conversationId: conversation.id,
+    patch: {
+      updateNodes: [{
+        id: existingNode.id,
+        label,
+        type,
+        parentId,
+        description
+      }]
+    }
+  });
+  const node = getMindmapNode(conversation.id, existingNode.id);
+
+  return res.json({
+    conversation,
+    node,
+    mindmap: patchResult.mindmap,
+    metadata: {
+      patchApplied: patchResult.applied
+    }
   });
 });
 

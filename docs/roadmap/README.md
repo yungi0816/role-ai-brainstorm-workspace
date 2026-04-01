@@ -20,6 +20,7 @@ This log separates implemented work from planned work. It reflects repository st
 | 11 | Chat-first desktop UX, frameless window controls, expandable mind map, Ollama setup panel. | Multiple local commits |
 | 12 | Repository documentation structure. | Current documentation phase |
 | 13 | Conversation export API, Markdown download UI, and portfolio case study. | Current feature phase |
+| 14 | Direct mind map node editing through patch-backed API and UI controls. | Current feature phase |
 
 ## Near-Term Roadmap
 
@@ -33,7 +34,7 @@ This log separates implemented work from planned work. It reflects repository st
 | Add test coverage around API contracts and patch application. | Planned |
 | Add branded installer assets and production packaging policy. | Planned |
 | Add PDF/HTML export from the saved Markdown report. | Planned |
-| Add direct mind map node editing and merge controls. | Planned |
+| Add mind map node merge controls. | Planned |
 
 ## Deferred Work
 

@@ -5,9 +5,12 @@ import {
   HelpCircle,
   Lightbulb,
   ListTodo,
+  Pencil,
+  Save,
   Send,
   Sparkles,
-  Wrench
+  Wrench,
+  X
 } from 'lucide-react';
 import {
   Background,
@@ -29,6 +32,8 @@ const TYPE_LABEL = {
   decision: 'Decision',
   question: 'Question'
 };
+
+const NODE_TYPE_OPTIONS = Object.entries(TYPE_LABEL).map(([value, label]) => ({ value, label }));
 
 const TYPE_STYLE = {
   idea: {
@@ -361,9 +366,32 @@ function toFlowEdge(edge, positions) {
   };
 }
 
-function SelectedNodePanel({ node, onAskQuestion, isSending }) {
-// ... 그대로 유지
+function createNodeDraft(node) {
+  return {
+    label: node?.label || '',
+    type: node?.type || 'idea',
+    description: node?.description || '',
+    parentId: normalizeParentId(node) || ''
+  };
+}
+
+function SelectedNodePanel({ node, nodes, onAskQuestion, onUpdateNode, isSending }) {
   const [question, setQuestion] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [draft, setDraft] = useState(createNodeDraft(node));
+
+  useEffect(() => {
+    setQuestion('');
+    setIsEditing(false);
+    setDraft(createNodeDraft(node));
+  }, [node?.id]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraft(createNodeDraft(node));
+    }
+  }, [node, isEditing]);
 
   if (!node) {
     return (
@@ -384,6 +412,29 @@ function SelectedNodePanel({ node, onAskQuestion, isSending }) {
     setQuestion('');
   }
 
+  async function handleEditSubmit(event) {
+    event.preventDefault();
+    if (!draft.label.trim() || isSaving || isSending) {
+      return;
+    }
+
+    const isRoot = !normalizeParentId(node);
+    setIsSaving(true);
+    try {
+      const saved = await onUpdateNode(node.id, {
+        label: draft.label.trim(),
+        type: draft.type,
+        description: draft.description.trim(),
+        parentId: isRoot ? null : draft.parentId || null
+      });
+      if (saved !== false) {
+        setIsEditing(false);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   function handleQuestionKeyDown(event) {
     if (event.key !== 'Enter' || event.shiftKey) {
       return;
@@ -393,6 +444,9 @@ function SelectedNodePanel({ node, onAskQuestion, isSending }) {
     event.currentTarget.form?.requestSubmit();
   }
 
+  const isRoot = !normalizeParentId(node);
+  const parentOptions = (nodes || []).filter((candidate) => candidate.id !== node.id);
+
   return (
     <div className="border-t border-cyan-300/10 bg-slate-950/92 px-5 py-3">
       <div className="mb-2 flex items-start justify-between gap-3">
@@ -400,10 +454,74 @@ function SelectedNodePanel({ node, onAskQuestion, isSending }) {
           <div className="truncate text-sm font-semibold text-slate-50">{node.label}</div>
           <div className="mt-1 text-xs text-slate-400">{TYPE_LABEL[node.type] || node.type}</div>
         </div>
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
+          onClick={() => setIsEditing((value) => !value)}
+          title={isEditing ? 'Cancel editing' : 'Edit node'}
+          aria-label={isEditing ? 'Cancel editing' : 'Edit node'}
+          disabled={isSending || isSaving}
+        >
+          {isEditing ? <X size={15} /> : <Pencil size={15} />}
+        </button>
       </div>
-      <p className="line-clamp-3 text-xs leading-5 text-slate-400">
-        {node.description || 'No description.'}
-      </p>
+
+      {isEditing ? (
+        <form className="grid gap-2" onSubmit={handleEditSubmit}>
+          <input
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 outline-none transition focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/10"
+            value={draft.label}
+            onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))}
+            placeholder="Node label"
+            disabled={isSaving}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 outline-none transition focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/10"
+              value={draft.type}
+              onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value }))}
+              disabled={isSaving}
+            >
+              {NODE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select
+              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 outline-none transition focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/10 disabled:text-slate-500"
+              value={draft.parentId}
+              onChange={(event) => setDraft((current) => ({ ...current, parentId: event.target.value }))}
+              disabled={isRoot || isSaving}
+              title={isRoot ? 'Root node parent cannot be changed' : 'Parent node'}
+            >
+              <option value="">Root</option>
+              {parentOptions.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>{candidate.label}</option>
+              ))}
+            </select>
+          </div>
+          <textarea
+            className="min-h-16 resize-none rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs leading-5 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70 focus:ring-2 focus:ring-cyan-300/10"
+            rows={3}
+            value={draft.description}
+            onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+            placeholder="Node description"
+            disabled={isSaving}
+          />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-cyan-500/22 px-3 text-xs font-semibold text-cyan-100 ring-1 ring-cyan-300/30 transition hover:bg-cyan-400/24 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 disabled:ring-slate-700"
+            disabled={isSaving || isSending || !draft.label.trim()}
+          >
+            <Save size={14} />
+            {isSaving ? 'Saving...' : 'Save node'}
+          </button>
+        </form>
+      ) : (
+        <p className="line-clamp-3 text-xs leading-5 text-slate-400">
+          {node.description || 'No description.'}
+        </p>
+      )}
+
       <form className="mt-3 grid gap-2" onSubmit={handleSubmit}>
         <div className="flex gap-2">
           <textarea
@@ -467,6 +585,7 @@ export default function MindMapPanel({
   selectedNode,
   onSelectNode,
   onAskNodeQuestion,
+  onUpdateNode,
   isSending
 }) {
   const sourceNodes = mindmap?.nodes || [];
@@ -493,7 +612,13 @@ export default function MindMapPanel({
         )}
       </div>
 
-      <SelectedNodePanel node={selectedNode} onAskQuestion={onAskNodeQuestion} isSending={isSending} />
+      <SelectedNodePanel
+        node={selectedNode}
+        nodes={sourceNodes}
+        onAskQuestion={onAskNodeQuestion}
+        onUpdateNode={onUpdateNode}
+        isSending={isSending}
+      />
     </section>
   );
 }

@@ -161,6 +161,28 @@ Supported pull targets:
 
 Returns the persisted nodes and edges for a conversation.
 
+### `PATCH /api/mindmap/:conversationId/nodes/:nodeId`
+
+Updates a saved mind map node without calling an AI provider. The route reuses the same patch application path used by AI-generated updates, so parent validation and cycle protection still apply.
+
+Request:
+
+```json
+{
+  "label": "MVP Scope",
+  "type": "decision",
+  "parentId": "parent-node-id or null",
+  "description": "What this node means"
+}
+```
+
+Response includes:
+
+- `conversation`
+- `node`
+- `mindmap`
+- `metadata.patchApplied`
+
 ### `POST /api/mindmap/node-question`
 
 Uses a selected mind map node as context for a follow-up AI turn. The route reuses the conversation's saved provider and model.

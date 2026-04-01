@@ -33,6 +33,7 @@ async function fetchJson(baseUrl, pathname, options) {
 try {
   const serverModule = await import('../src/server.js');
   const databaseModule = await import('../src/db/database.js');
+  const mindmapPatchModule = await import('../src/services/mindmapPatchService.js');
   closeDatabase = databaseModule.closeDatabase;
 
   const app = serverModule.createApp();
@@ -63,6 +64,29 @@ try {
       title: 'Smoke export'
     })
   });
+  const rootNode = mindmapPatchModule.ensureRootMindmapNode({
+    conversationId: created.conversation.id,
+    label: 'Smoke export',
+    description: 'Smoke test root node'
+  });
+
+  const editedNode = await fetchJson(baseUrl, `/mindmap/${created.conversation.id}/nodes/${rootNode.id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      label: 'Edited smoke node',
+      type: 'decision',
+      parentId: null,
+      description: 'Edited by backend smoke test'
+    })
+  });
+  if (
+    editedNode.node.label !== 'Edited smoke node' ||
+    editedNode.node.type !== 'decision' ||
+    editedNode.node.description !== 'Edited by backend smoke test'
+  ) {
+    throw new Error(`Unexpected edited node payload: ${JSON.stringify(editedNode)}`);
+  }
 
   const exportPayload = await fetchJson(
     baseUrl,
@@ -78,7 +102,7 @@ try {
 
   console.log(JSON.stringify({
     ok: true,
-    checks: ['health', 'providers', 'conversation-export'],
+    checks: ['health', 'providers', 'mindmap-node-edit', 'conversation-export'],
     providerCount: providerIds.size
   }));
 } finally {
