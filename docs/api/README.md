@@ -91,7 +91,7 @@ Query:
 
 | Parameter | Values | Default |
 | --- | --- | --- |
-| `format` | `markdown`, `json` | `markdown` |
+| `format` | `markdown`, `html`, `json` | `markdown` |
 
 Markdown response:
 
@@ -118,6 +118,16 @@ JSON response:
       "edges": []
     }
   }
+}
+```
+
+HTML response:
+
+```json
+{
+  "format": "html",
+  "filename": "role-ai-brainstorm-workspace.html",
+  "content": "<!doctype html>..."
 }
 ```
 

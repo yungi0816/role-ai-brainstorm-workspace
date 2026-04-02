@@ -23,6 +23,7 @@ All notable changes to this project are documented here.
 ### Added
 
 - Direct mind map node editing for label, type, parent, and description.
+- HTML conversation export for print/PDF-ready reports.
 - Conversation export API for Markdown/JSON reports.
 - Frontend Markdown download action for saved conversations.
 - Korean portfolio case study with contribution summary and next feature candidates.

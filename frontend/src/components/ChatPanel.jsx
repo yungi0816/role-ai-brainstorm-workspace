@@ -1,4 +1,4 @@
-import { Download, Globe2, MessageCircle, Plus, Send, Settings, Trash2 } from 'lucide-react';
+import { FileCode2, FileText, Globe2, MessageCircle, Plus, Send, Settings, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import AgentOpinionPanel from './AgentOpinionPanel.jsx';
 
@@ -151,12 +151,22 @@ export default function ChatPanel({
         <button
           type="button"
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
-          onClick={onExportConversation}
-          title="Export conversation"
-          aria-label="Export conversation"
+          onClick={() => onExportConversation('markdown')}
+          title="Export Markdown report"
+          aria-label="Export Markdown report"
           disabled={!conversationId || conversationId === 'new' || isSending}
         >
-          <Download size={16} />
+          <FileText size={16} />
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
+          onClick={() => onExportConversation('html')}
+          title="Export HTML / print to PDF"
+          aria-label="Export HTML / print to PDF"
+          disabled={!conversationId || conversationId === 'new' || isSending}
+        >
+          <FileCode2 size={16} />
         </button>
         {conversationId && conversationId !== 'new' && (
           <button

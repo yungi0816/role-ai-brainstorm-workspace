@@ -19,7 +19,7 @@ AI에게 아이디어를 물어보면 답변은 빠르게 받을 수 있지만, 
 
 | 영역 | 구현 |
 | --- | --- |
-| Frontend | React 채팅 UI, Provider 설정 패널, React Flow 마인드맵, 대화 히스토리, Markdown export 버튼 |
+| Frontend | React 채팅 UI, Provider 설정 패널, React Flow 마인드맵, 대화 히스토리, Markdown/HTML export 버튼 |
 | Backend | Express API, SQLite 저장, Provider router, AI JSON 정규화, 마인드맵 patch 적용, node edit API, conversation export API |
 | Desktop | Electron shell, backend/renderer 통합 실행, Windows installer 빌드 |
 | Quality | GitHub Actions CI, backend smoke, frontend build, desktop smoke |
@@ -45,7 +45,7 @@ Ollama는 로컬 HTTP 서버, Antigravity CLI는 `child_process`, OpenAI는 API 
 
 **결과물을 밖으로 꺼낼 수 있게 만들기**
 
-대화, 역할 의견, 마인드맵 노드/엣지를 Markdown 또는 JSON으로 export할 수 있게 했습니다. 포트폴리오나 회의 기록처럼 "앱 안에서 끝나는 결과"를 실제 문서로 이어갈 수 있습니다.
+대화, 역할 의견, 마인드맵 노드/엣지를 Markdown, HTML, JSON으로 export할 수 있게 했습니다. HTML 리포트는 브라우저 인쇄를 통해 PDF 저장으로 이어갈 수 있어 포트폴리오나 회의 기록처럼 "앱 안에서 끝나는 결과"를 실제 문서로 확장할 수 있습니다.
 
 ## 면접에서 설명하기 좋은 포인트
 
@@ -60,10 +60,9 @@ Ollama는 로컬 HTTP 서버, Antigravity CLI는 `child_process`, OpenAI는 API 
 | 우선순위 | 기능 | 이유 |
 | --- | --- | --- |
 | 1 | 실제 사용 GIF | README 첫인상과 포트폴리오 전달력이 가장 빨리 좋아진다. |
-| 2 | Export 형식 확장 | Markdown 다음 단계로 PDF/HTML export를 붙이면 결과 공유가 쉬워진다. |
-| 3 | Provider별 실행 로그 | Ollama/CLI/OpenAI 실패 원인을 UI에서 바로 추적할 수 있다. |
-| 4 | installer 아이콘/서명 | 공개 배포 프로젝트처럼 보이는 완성도가 올라간다. |
-| 5 | patch service 단위 테스트 | AI 출력 방어 로직의 신뢰도를 코드로 증명할 수 있다. |
+| 2 | Provider별 실행 로그 | Ollama/CLI/OpenAI 실패 원인을 UI에서 바로 추적할 수 있다. |
+| 3 | installer 아이콘/서명 | 공개 배포 프로젝트처럼 보이는 완성도가 올라간다. |
+| 4 | patch service 단위 테스트 | AI 출력 방어 로직의 신뢰도를 코드로 증명할 수 있다. |
 
 ## 현재 상태
 

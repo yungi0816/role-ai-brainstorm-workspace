@@ -31,7 +31,7 @@
 - 마인드맵 노드를 클릭해서 해당 노드 기준으로 추가 질문할 수 있습니다.
 - AI가 만든 마인드맵 노드의 제목, 타입, 부모, 설명을 직접 편집할 수 있습니다.
 - 이전 대화 목록으로 돌아가서 이어서 작업할 수 있습니다.
-- 대화, 역할 의견, 마인드맵 상태를 Markdown 리포트로 내보낼 수 있습니다.
+- 대화, 역할 의견, 마인드맵 상태를 Markdown 또는 HTML 리포트로 내보낼 수 있습니다.
 - Ollama 설치, 서버 실행, `localhost:11434` 연결, 모델 목록을 확인합니다.
 - Electron 기반 Windows 데스크톱 앱과 installer 빌드를 지원합니다.
 - GitHub Actions에서 backend smoke, frontend build, desktop smoke를 돌립니다.

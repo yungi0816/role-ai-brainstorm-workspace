@@ -302,17 +302,22 @@ export default function App() {
     }
   }
 
-  async function handleExportConversation() {
+  async function handleExportConversation(format = 'markdown') {
     if (!state.conversationId || state.isSending) {
       return;
     }
 
     try {
-      const result = await exportConversation(state.conversationId, 'markdown');
+      const result = await exportConversation(state.conversationId, format);
       const content = typeof result.content === 'string'
         ? result.content
         : JSON.stringify(result.content, null, 2);
-      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const mimeType = result.format === 'html'
+        ? 'text/html;charset=utf-8'
+        : result.format === 'json'
+          ? 'application/json;charset=utf-8'
+          : 'text/markdown;charset=utf-8';
+      const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

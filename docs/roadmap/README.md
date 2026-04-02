@@ -21,6 +21,7 @@ This log separates implemented work from planned work. It reflects repository st
 | 12 | Repository documentation structure. | Current documentation phase |
 | 13 | Conversation export API, Markdown download UI, and portfolio case study. | Current feature phase |
 | 14 | Direct mind map node editing through patch-backed API and UI controls. | Current feature phase |
+| 15 | HTML export for print/PDF-ready conversation reports. | Current feature phase |
 
 ## Near-Term Roadmap
 
@@ -33,7 +34,7 @@ This log separates implemented work from planned work. It reflects repository st
 | Keep Copilot provider as a stable interface until OAuth/SDK integration is selected. | Planned |
 | Add test coverage around API contracts and patch application. | Planned |
 | Add branded installer assets and production packaging policy. | Planned |
-| Add PDF/HTML export from the saved Markdown report. | Planned |
+| Add native PDF generation from exported HTML reports. | Planned |
 | Add mind map node merge controls. | Planned |
 
 ## Deferred Work

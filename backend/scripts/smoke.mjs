@@ -100,9 +100,22 @@ try {
     throw new Error(`Unexpected export payload: ${JSON.stringify(exportPayload)}`);
   }
 
+  const htmlExportPayload = await fetchJson(
+    baseUrl,
+    `/conversations/${created.conversation.id}/export?format=html`
+  );
+  if (
+    htmlExportPayload.format !== 'html' ||
+    !htmlExportPayload.filename.endsWith('.html') ||
+    !htmlExportPayload.content.includes('<!doctype html>') ||
+    !htmlExportPayload.content.includes('Smoke export')
+  ) {
+    throw new Error(`Unexpected HTML export payload: ${JSON.stringify(htmlExportPayload)}`);
+  }
+
   console.log(JSON.stringify({
     ok: true,
-    checks: ['health', 'providers', 'mindmap-node-edit', 'conversation-export'],
+    checks: ['health', 'providers', 'mindmap-node-edit', 'conversation-export', 'html-export'],
     providerCount: providerIds.size
   }));
 } finally {
