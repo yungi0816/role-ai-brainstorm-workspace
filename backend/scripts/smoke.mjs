@@ -55,6 +55,12 @@ try {
     }
   }
 
+  await fetchJson(baseUrl, '/providers/openai/diagnostics?model=gpt-4.1-mini');
+  const providerLogs = await fetchJson(baseUrl, '/providers/debug/logs?providerId=openai');
+  if (!providerLogs.logs?.some((entry) => entry.event === 'provider.diagnostics.complete')) {
+    throw new Error(`Expected provider diagnostics log entry: ${JSON.stringify(providerLogs)}`);
+  }
+
   const created = await fetchJson(baseUrl, '/conversations', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -115,7 +121,7 @@ try {
 
   console.log(JSON.stringify({
     ok: true,
-    checks: ['health', 'providers', 'mindmap-node-edit', 'conversation-export', 'html-export'],
+    checks: ['health', 'providers', 'provider-debug-logs', 'mindmap-node-edit', 'conversation-export', 'html-export'],
     providerCount: providerIds.size
   }));
 } finally {

@@ -33,6 +33,7 @@
 - 이전 대화 목록으로 돌아가서 이어서 작업할 수 있습니다.
 - 대화, 역할 의견, 마인드맵 상태를 Markdown 또는 HTML 리포트로 내보낼 수 있습니다.
 - Ollama 설치, 서버 실행, `localhost:11434` 연결, 모델 목록을 확인합니다.
+- Provider 진단, 실행 테스트, 채팅 호출 로그를 설정 패널에서 확인할 수 있습니다.
 - Electron 기반 Windows 데스크톱 앱과 installer 빌드를 지원합니다.
 - GitHub Actions에서 backend smoke, frontend build, desktop smoke를 돌립니다.
 

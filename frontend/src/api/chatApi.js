@@ -29,6 +29,20 @@ export async function testProvider(providerId, model) {
   return data;
 }
 
+export async function fetchProviderLogs(providerId, limit = 30) {
+  const { data } = await api.get('/providers/debug/logs', {
+    params: { providerId, limit }
+  });
+  return data.logs || [];
+}
+
+export async function clearProviderLogs(providerId) {
+  const { data } = await api.delete('/providers/debug/logs', {
+    params: { providerId }
+  });
+  return data.logs || [];
+}
+
 export async function authenticateProvider(providerId, payload) {
   const { data } = await api.post(`/providers/${providerId}/auth`, payload);
   return data;

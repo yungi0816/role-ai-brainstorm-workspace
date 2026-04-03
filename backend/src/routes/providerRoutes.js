@@ -12,6 +12,10 @@ import {
   listOllamaModels,
   pullOllamaModel
 } from '../services/ollamaRuntimeService.js';
+import {
+  clearProviderLogs,
+  listProviderLogs
+} from '../services/providerDebugLogService.js';
 
 const router = Router();
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
@@ -92,6 +96,26 @@ router.post('/ollama/models/pull', async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+router.get('/debug/logs', (req, res) => {
+  res.json({
+    logs: listProviderLogs({
+      providerId: req.query.providerId,
+      limit: req.query.limit
+    })
+  });
+});
+
+router.delete('/debug/logs', (req, res) => {
+  res.json({
+    ...clearProviderLogs({
+      providerId: req.query.providerId
+    }),
+    logs: listProviderLogs({
+      providerId: req.query.providerId
+    })
+  });
 });
 
 router.get('/:providerId/models', async (req, res, next) => {

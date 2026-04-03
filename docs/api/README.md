@@ -73,6 +73,21 @@ Request:
 
 Failure categories include `not_installed`, `authentication`, `permission`, `timeout`, `json_response`, and `execution`.
 
+### `GET /api/providers/debug/logs`
+
+Returns recent in-memory provider execution events. Logs are local runtime diagnostics and are not persisted to SQLite.
+
+Query:
+
+| Parameter | Description |
+| --- | --- |
+| `providerId` | Optional provider filter. |
+| `limit` | Optional max entries, capped by the backend. |
+
+### `DELETE /api/providers/debug/logs`
+
+Clears provider debug logs. Passing `providerId` clears only that provider's entries.
+
 ## Conversations
 
 ### `GET /api/conversations`

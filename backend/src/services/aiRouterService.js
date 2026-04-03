@@ -8,6 +8,7 @@ import {
   buildJsonRepairPrompt,
   normalizeAiJsonResponse
 } from './promptService.js';
+import { recordProviderLog } from './providerDebugLogService.js';
 
 const providerInstances = [
   new OllamaProvider(),
@@ -144,25 +145,93 @@ export async function listProviderModels(providerId) {
 
 export async function configureProvider(providerId, credentials) {
   const provider = getProviderOrThrow(providerId);
-  const metadata = await provider.configureCredentials(credentials || {});
-  const models = await provider.listModelOptions();
+  recordProviderLog({
+    providerId: provider.id,
+    event: 'provider.auth.start',
+    message: 'Provider authentication/configuration started.'
+  });
 
-  return {
-    provider: metadata,
-    models,
-    modelOptions: models
-  };
+  try {
+    const metadata = await provider.configureCredentials(credentials || {});
+    const models = await provider.listModelOptions();
+
+    recordProviderLog({
+      providerId: provider.id,
+      event: 'provider.auth.success',
+      message: 'Provider authentication/configuration completed.',
+      details: {
+        modelCount: models.length,
+        status: metadata.status
+      }
+    });
+
+    return {
+      provider: metadata,
+      models,
+      modelOptions: models
+    };
+  } catch (error) {
+    recordProviderLog({
+      providerId: provider.id,
+      event: 'provider.auth.failure',
+      level: 'error',
+      message: error.message,
+      details: error.details || null
+    });
+    throw error;
+  }
 }
 
 export async function diagnoseProvider(providerId, { model } = {}) {
   const provider = getProviderOrThrow(providerId);
-  return provider.diagnose({ model });
+  recordProviderLog({
+    providerId: provider.id,
+    model,
+    event: 'provider.diagnostics.start',
+    message: 'Provider diagnostics started.'
+  });
+
+  try {
+    const result = await provider.diagnose({ model });
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.diagnostics.complete',
+      level: result.summary?.state === 'error' ? 'warn' : 'info',
+      message: result.summary?.message || 'Provider diagnostics completed.',
+      details: {
+        summary: result.summary,
+        checks: (result.checks || []).map((check) => ({
+          id: check.id,
+          status: check.status,
+          message: check.message
+        }))
+      }
+    });
+    return result;
+  } catch (error) {
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.diagnostics.failure',
+      level: 'error',
+      message: error.message,
+      details: error.details || null
+    });
+    throw error;
+  }
 }
 
 export async function testProvider(providerId, { model } = {}) {
   const provider = getProviderOrThrow(providerId);
   const selectedModel = model || provider.getModelOptions()[0]?.id;
   const startedAt = Date.now();
+  recordProviderLog({
+    providerId: provider.id,
+    model: selectedModel,
+    event: 'provider.test.start',
+    message: 'Provider execution test started.'
+  });
 
   try {
     provider.assertUsable({ model: selectedModel });
@@ -181,7 +250,7 @@ export async function testProvider(providerId, { model } = {}) {
     const parsed = parseTestJson(rawText);
     const ok = Boolean(parsed?.ok);
 
-    return {
+    const result = {
       provider: provider.getMetadata(),
       model: selectedModel,
       testedAt: new Date().toISOString(),
@@ -193,8 +262,22 @@ export async function testProvider(providerId, { model } = {}) {
       parsed,
       rawPreview: compactText(rawText)
     };
+
+    recordProviderLog({
+      providerId: provider.id,
+      model: selectedModel,
+      event: ok ? 'provider.test.success' : 'provider.test.invalid-json',
+      level: ok ? 'info' : 'warn',
+      message: result.message,
+      details: {
+        durationMs: result.durationMs,
+        rawPreview: result.rawPreview
+      }
+    });
+
+    return result;
   } catch (error) {
-    return {
+    const result = {
       provider: provider.getMetadata(),
       model: selectedModel,
       testedAt: new Date().toISOString(),
@@ -205,6 +288,21 @@ export async function testProvider(providerId, { model } = {}) {
       message: error.message,
       details: error.details || null
     };
+
+    recordProviderLog({
+      providerId: provider.id,
+      model: selectedModel,
+      event: 'provider.test.failure',
+      level: 'error',
+      message: result.message,
+      details: {
+        category: result.category,
+        durationMs: result.durationMs,
+        errorDetails: result.details
+      }
+    });
+
+    return result;
   }
 }
 
@@ -218,7 +316,32 @@ export async function generateBrainstormResponse({
   nodeContext = null
 }) {
   const provider = getProviderOrThrow(providerId);
-  provider.assertUsable({ model });
+  const startedAt = Date.now();
+
+  recordProviderLog({
+    providerId: provider.id,
+    model,
+    event: 'provider.chat.start',
+    message: 'Provider brainstorm generation started.',
+    details: {
+      conversationId: conversation?.id,
+      messageLength: String(message || '').length
+    }
+  });
+
+  try {
+    provider.assertUsable({ model });
+  } catch (error) {
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.chat.unusable',
+      level: 'error',
+      message: error.message,
+      details: error.details || null
+    });
+    throw error;
+  }
 
   const prompt = buildBrainstormPrompt({
     message,
@@ -227,14 +350,52 @@ export async function generateBrainstormResponse({
     nodeContext
   });
 
-  const rawText = await generateProviderText(provider, {
+  let rawText;
+  try {
+    rawText = await generateProviderText(provider, {
+      model,
+      prompt,
+      conversation
+    });
+  } catch (error) {
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.chat.failure',
+      level: 'error',
+      message: error.message,
+      details: {
+        durationMs: Date.now() - startedAt,
+        errorDetails: error.details || null
+      }
+    });
+    throw error;
+  }
+
+  recordProviderLog({
+    providerId: provider.id,
     model,
-    prompt,
-    conversation
+    event: 'provider.chat.raw-response',
+    message: 'Provider returned a raw response.',
+    details: {
+      durationMs: Date.now() - startedAt,
+      responseLength: rawText.length,
+      rawPreview: compactText(rawText, 500)
+    }
   });
 
   const normalized = normalizeAiJsonResponse(rawText);
   if (normalized.metadata?.normalizedBy !== 'fallback') {
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.chat.normalized',
+      message: 'Provider response was normalized successfully.',
+      details: {
+        durationMs: Date.now() - startedAt,
+        normalizedBy: normalized.metadata?.normalizedBy
+      }
+    });
     return normalized;
   }
 
@@ -252,6 +413,17 @@ export async function generateBrainstormResponse({
     const repaired = normalizeAiJsonResponse(repairedText);
 
     if (repaired.metadata?.normalizedBy !== 'fallback') {
+      recordProviderLog({
+        providerId: provider.id,
+        model,
+        event: 'provider.chat.repair-success',
+        level: 'warn',
+        message: 'Provider response needed JSON repair and was recovered.',
+        details: {
+          durationMs: Date.now() - startedAt,
+          initialParseError: normalized.metadata?.parseError
+        }
+      });
       return {
         ...repaired,
         metadata: {
@@ -263,6 +435,18 @@ export async function generateBrainstormResponse({
       };
     }
 
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.chat.fallback',
+      level: 'warn',
+      message: 'Provider response could not be repaired and fallback normalization was used.',
+      details: {
+        durationMs: Date.now() - startedAt,
+        parseError: normalized.metadata?.parseError,
+        repairParseError: repaired.metadata?.parseError
+      }
+    });
     return {
       ...normalized,
       metadata: {
@@ -273,6 +457,17 @@ export async function generateBrainstormResponse({
       }
     };
   } catch (error) {
+    recordProviderLog({
+      providerId: provider.id,
+      model,
+      event: 'provider.chat.repair-failure',
+      level: 'warn',
+      message: 'Provider response repair failed; fallback normalization was used.',
+      details: {
+        durationMs: Date.now() - startedAt,
+        repairError: error.message
+      }
+    });
     return {
       ...normalized,
       metadata: {

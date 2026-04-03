@@ -19,8 +19,8 @@ AI에게 아이디어를 물어보면 답변은 빠르게 받을 수 있지만, 
 
 | 영역 | 구현 |
 | --- | --- |
-| Frontend | React 채팅 UI, Provider 설정 패널, React Flow 마인드맵, 대화 히스토리, Markdown/HTML export 버튼 |
-| Backend | Express API, SQLite 저장, Provider router, AI JSON 정규화, 마인드맵 patch 적용, node edit API, conversation export API |
+| Frontend | React 채팅 UI, Provider 설정 패널, Provider debug log, React Flow 마인드맵, 대화 히스토리, Markdown/HTML export 버튼 |
+| Backend | Express API, SQLite 저장, Provider router, AI JSON 정규화, Provider debug log service, 마인드맵 patch 적용, node edit API, conversation export API |
 | Desktop | Electron shell, backend/renderer 통합 실행, Windows installer 빌드 |
 | Quality | GitHub Actions CI, backend smoke, frontend build, desktop smoke |
 | Docs | 한국어 README, 영어 README, 아키텍처/API/DB/배포 문서, 포트폴리오 케이스 스터디 |
@@ -43,6 +43,10 @@ AI가 만든 노드는 초안일 뿐이라 제목, 타입, 설명, 부모 관계
 
 Ollama는 로컬 HTTP 서버, Antigravity CLI는 `child_process`, OpenAI는 API key, Copilot은 추후 OAuth/SDK가 필요합니다. 프론트엔드는 이 차이를 몰라도 되도록 backend가 공통 응답 계약을 유지합니다.
 
+**실패 원인을 UI에서 확인하기**
+
+Provider 준비 상태는 환경 의존성이 큽니다. 진단, 실행 테스트, 실제 채팅 호출에서 발생한 이벤트를 in-memory debug log로 남기고 설정 패널에서 볼 수 있게 해 사용자가 "왜 안 되는지"를 바로 확인할 수 있게 했습니다.
+
 **결과물을 밖으로 꺼낼 수 있게 만들기**
 
 대화, 역할 의견, 마인드맵 노드/엣지를 Markdown, HTML, JSON으로 export할 수 있게 했습니다. HTML 리포트는 브라우저 인쇄를 통해 PDF 저장으로 이어갈 수 있어 포트폴리오나 회의 기록처럼 "앱 안에서 끝나는 결과"를 실제 문서로 확장할 수 있습니다.
@@ -50,7 +54,7 @@ Ollama는 로컬 HTTP 서버, Antigravity CLI는 `child_process`, OpenAI는 API 
 ## 면접에서 설명하기 좋은 포인트
 
 - "AI 기능" 자체보다 AI 출력의 불안정성을 어떻게 방어했는지 설명할 수 있습니다.
-- Provider 교체 가능성을 위해 어떤 boundary를 잡았는지 말할 수 있습니다.
+- Provider 교체 가능성과 실행 실패 추적을 위해 어떤 boundary를 잡았는지 말할 수 있습니다.
 - React Flow 시각화와 SQLite 저장 구조가 어떻게 연결되는지 설명할 수 있습니다.
 - Electron에서 backend와 renderer를 같이 패키징할 때 어떤 tradeoff가 있었는지 설명할 수 있습니다.
 - CI와 smoke test로 어떤 최소 품질선을 잡았는지 보여줄 수 있습니다.
@@ -60,9 +64,8 @@ Ollama는 로컬 HTTP 서버, Antigravity CLI는 `child_process`, OpenAI는 API 
 | 우선순위 | 기능 | 이유 |
 | --- | --- | --- |
 | 1 | 실제 사용 GIF | README 첫인상과 포트폴리오 전달력이 가장 빨리 좋아진다. |
-| 2 | Provider별 실행 로그 | Ollama/CLI/OpenAI 실패 원인을 UI에서 바로 추적할 수 있다. |
-| 3 | installer 아이콘/서명 | 공개 배포 프로젝트처럼 보이는 완성도가 올라간다. |
-| 4 | patch service 단위 테스트 | AI 출력 방어 로직의 신뢰도를 코드로 증명할 수 있다. |
+| 2 | installer 아이콘/서명 | 공개 배포 프로젝트처럼 보이는 완성도가 올라간다. |
+| 3 | patch service 단위 테스트 | AI 출력 방어 로직의 신뢰도를 코드로 증명할 수 있다. |
 
 ## 현재 상태
 

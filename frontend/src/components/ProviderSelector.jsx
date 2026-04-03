@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, KeyRound, RefreshCw } from 'lucide-react';
-import { fetchProviderDiagnostics, testProvider as runProviderTest } from '../api/chatApi.js';
+import { AlertCircle, CheckCircle2, KeyRound, RefreshCw, Terminal, Trash2 } from 'lucide-react';
+import {
+  clearProviderLogs,
+  fetchProviderDiagnostics,
+  fetchProviderLogs,
+  testProvider as runProviderTest
+} from '../api/chatApi.js';
 
 function providerTone(provider) {
   if (!provider) {
@@ -78,6 +83,18 @@ function summaryClassName(state) {
   return 'border-amber-300/25 bg-amber-400/10 text-amber-100';
 }
 
+function logClassName(level) {
+  if (level === 'error') {
+    return 'border-rose-300/20 bg-rose-400/10 text-rose-100';
+  }
+
+  if (level === 'warn') {
+    return 'border-amber-300/20 bg-amber-400/10 text-amber-100';
+  }
+
+  return 'border-slate-700 bg-slate-950/78 text-slate-300';
+}
+
 function formatCheckedAt(value) {
   if (!value) {
     return 'not checked';
@@ -107,6 +124,8 @@ export default function ProviderSelector({
   const [testResult, setTestResult] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [providerActionError, setProviderActionError] = useState(null);
   const activeProvider = providers.find((item) => item.id === provider);
 
@@ -120,7 +139,41 @@ export default function ProviderSelector({
     setDiagnostics(null);
     setTestResult(null);
     setProviderActionError(null);
+    setLogs([]);
+    if (activeProvider) {
+      loadProviderLogs(activeProvider.id);
+    }
   }, [activeProvider?.id, model]);
+
+  async function loadProviderLogs(providerId = activeProvider?.id) {
+    if (!providerId) {
+      return;
+    }
+
+    setIsLoadingLogs(true);
+    try {
+      setLogs(await fetchProviderLogs(providerId));
+    } catch (error) {
+      setProviderActionError(error.response?.data?.error?.message || error.message);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }
+
+  async function handleClearProviderLogs() {
+    if (!activeProvider) {
+      return;
+    }
+
+    setIsLoadingLogs(true);
+    try {
+      setLogs(await clearProviderLogs(activeProvider.id));
+    } catch (error) {
+      setProviderActionError(error.response?.data?.error?.message || error.message);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }
 
   async function handleAuthSubmit(event) {
     if (event) event.preventDefault();
@@ -146,6 +199,7 @@ export default function ProviderSelector({
     setProviderActionError(null);
     try {
       setDiagnostics(await fetchProviderDiagnostics(activeProvider.id, model));
+      await loadProviderLogs(activeProvider.id);
     } catch (error) {
       setProviderActionError(error.response?.data?.error?.message || error.message);
     } finally {
@@ -163,6 +217,7 @@ export default function ProviderSelector({
     try {
       const result = await runProviderTest(activeProvider.id, model);
       setTestResult(result);
+      await loadProviderLogs(activeProvider.id);
       if (result.provider) {
         await onRefresh();
       }
@@ -289,6 +344,67 @@ export default function ProviderSelector({
             {providerActionError}
           </div>
         ) : null}
+      </section>
+
+      <section className="grid gap-3 rounded-md border border-cyan-300/10 bg-slate-900/48 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Terminal size={15} className="text-cyan-200" />
+            <div>
+              <h3 className="text-xs font-semibold text-slate-100">Provider debug log</h3>
+              <p className="text-[11px] text-slate-500">Recent diagnostics, tests, and chat execution events</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-950 text-slate-300 transition hover:border-cyan-300/40 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => loadProviderLogs(activeProvider?.id)}
+              disabled={!activeProvider || isLoadingLogs}
+              title="Refresh debug log"
+              aria-label="Refresh debug log"
+            >
+              <RefreshCw size={14} className={isLoadingLogs ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-300/20 bg-rose-950/30 text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleClearProviderLogs}
+              disabled={!activeProvider || isLoadingLogs || logs.length === 0}
+              title="Clear debug log"
+              aria-label="Clear debug log"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+
+        {logs.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-700 bg-slate-950/60 px-3 py-3 text-xs text-slate-500">
+            Run diagnostics, test a provider, or send a message to create log entries.
+          </div>
+        ) : (
+          <div className="max-h-56 overflow-y-auto pr-1">
+            <div className="grid gap-2">
+              {logs.map((entry) => (
+                <article key={entry.id} className={`rounded-md border px-3 py-2 text-[11px] ${logClassName(entry.level)}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{entry.event}</div>
+                      <div className="mt-0.5 leading-4 opacity-85">{entry.message}</div>
+                    </div>
+                    <time className="shrink-0 opacity-60">{formatCheckedAt(entry.createdAt)}</time>
+                  </div>
+                  {entry.details ? (
+                    <pre className="mt-2 max-h-24 overflow-auto rounded bg-slate-950/70 p-2 text-[10px] leading-4 text-slate-300">
+                      {JSON.stringify(entry.details, null, 2)}
+                    </pre>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {activeProvider?.auth?.type === 'oauth' ? (

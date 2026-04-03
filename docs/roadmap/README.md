@@ -22,6 +22,7 @@ This log separates implemented work from planned work. It reflects repository st
 | 13 | Conversation export API, Markdown download UI, and portfolio case study. | Current feature phase |
 | 14 | Direct mind map node editing through patch-backed API and UI controls. | Current feature phase |
 | 15 | HTML export for print/PDF-ready conversation reports. | Current feature phase |
+| 16 | Provider debug logs for diagnostics, execution tests, and chat calls. | Current feature phase |
 
 ## Near-Term Roadmap
 
